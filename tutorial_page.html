@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finglyph</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/tutorial_page.css" />
+</head>
+<body>
+    <main class="practice-page" aria-label="Hand-sign practice">
+        <section class="camera-module" aria-label="Hand recognition camera">
+            <div class="camera-frame">
+                <video id="webcam" autoplay playsinline muted></video>
+                <canvas id="hand-overlay" aria-hidden="true"></canvas>
+                <p id="camera-status" aria-live="polite">Preparing the camera…</p>
+            </div>
+            <button id="camera-retry" type="button" hidden>Try camera again</button>
+        </section>
+
+        <section class="gesture-guide" aria-live="polite" aria-label="Current hand gesture guide">
+            <div class="guide-sign"><img id="guide-image" src="assets/signs/A.svg" alt="" /></div>
+            <div>
+                <p>Make the <strong id="guide-letter">A</strong> hand sign and hold it briefly.</p>
+                <div class="hold-track" aria-hidden="true"><span id="hold-progress"></span></div>
+            </div>
+        </section>
+
+        <section id="found-gestures" aria-label="Recognized hand gestures"></section>
+        <a class="skip-link" href="main_page.html">Skip <span aria-hidden="true">›</span></a>
+    </main>
+    <script type="module" src="js/tutorial-page.js"></script>
+</body>
+</html>

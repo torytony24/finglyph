@@ -1,0 +1,324 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --primary-color: #fff;
+    --bg-color: #00FF19;
+    --element-color: #e9fea3;
+    --ink-color: #1f1f1f;
+    --fill-color: #f4f4f4;
+}
+
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
+    background: var(--primary-color);
+    color: var(--ink-color);
+    font-family: 'Poppins', Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--primary-color);
+}
+
+
+
+
+
+.top-fixed {
+    flex-shrink: 0;
+    padding: 24px 36px;
+    background: var(--primary-color);
+    display: flex;           
+    justify-content: space-between;  
+    align-items: center;  
+}
+
+h1 {
+    font-size: 36px;          
+    font-weight: 500;            
+    color: var(--ink-color); 
+    margin: 0;      
+}
+
+.top-right-buttons {
+    display: flex;
+    align-items: center;
+    border-radius: 15px;
+    background: #f6f6f6;
+    border: 2px solid #f1f1f1;
+}
+
+.nav-btn {
+    padding: 8px 32px;
+    border: none;
+    background: transparent;
+    color: var(--ink-color);
+    font-size: 13px;
+    font-weight: 500;  
+    white-space: nowrap;
+    position: relative;
+}
+
+.nav-btn:hover {
+    background: var(--ink-color);  
+    border-radius: 15px;
+    color: #ffffff;          
+}
+
+.nav-btn:active {
+    transform: scale(0.95);  
+}
+
+
+
+
+
+
+
+.main-scrollable {
+    flex: 1;
+    overflow: auto;
+    padding: 24px 36px;
+    scrollbar-width: none;
+    flex-direction: column;
+    align-items: center;
+    
+}
+
+.main-scrollable::-webkit-scrollbar {
+    display: none;  
+}
+
+#output {
+    display: flex;
+    min-height: 120px;
+    flex-direction: column;
+    align-items: flex-start;
+    /* Vertical spacing */
+    gap: 24px;
+    flex: 1; 
+}
+
+.word-container {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    /* Horizontal spacing */
+    gap: 5px;
+    overflow-x: auto;
+    padding: 8px 10px;
+    background: var(--bg-color);
+    scrollbar-width: none; 
+}
+
+.word-container::-webkit-scrollbar {
+    display: none; 
+}
+
+.glyph-slot {
+    position: relative;
+    display: block;
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+}
+
+.morph-glyph {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.glyph-fallback {
+    overflow: hidden;
+}
+
+
+
+
+
+.bottom-fixed {
+    flex-shrink: 0;
+    padding: 36px 36px;
+    background: var(--primary-color);
+    display: flex;
+    align-items: center;
+}
+
+#textInput {
+    max-width: 500px;
+    width: auto;
+    padding: 8px 16px;
+    color: var(--ink-color);
+    font-size: 16px;
+    border: none;                 
+    background-color: #f4f4f4; 
+    box-sizing: border-box;
+    text-align: left;  
+}
+
+#textInput:focus {
+    outline: none;
+    box-shadow: none; 
+}
+
+
+
+
+#camera-panel {
+    position: fixed;
+    right: 36px;
+    bottom: 36px;
+    z-index: 1000;
+    width: 320px;
+    padding: 12px;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+.camera-header,
+.camera-candidate {
+    display: flex;
+    align-items: center;
+}
+
+.camera-header {
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+#camera-toggle {
+    border: 0;
+    border-radius: 6px;
+    padding: 6px 9px;
+    background: var(--ink-color);
+    color: #fff;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+#camera-toggle:disabled {
+    cursor: wait;
+    opacity: 0.55;
+}
+
+.camera-preview {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #171717;
+}
+
+#webcam,
+#hand-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#webcam {
+    object-fit: cover;
+    transform: scaleX(-1);
+}
+
+#hand-overlay {
+    pointer-events: none;
+    transform: scaleX(-1);
+}
+
+.camera-candidate {
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.camera-glyph {
+    width: 54px;
+    height: 54px;
+    flex: 0 0 54px;
+    border-radius: 7px;
+    background: var(--bg-color);
+}
+
+.camera-candidate-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+#camera-letter {
+    display: block;
+    font-size: 20px;
+    line-height: 1;
+}
+
+#camera-status {
+    display: block;
+    overflow: hidden;
+    margin-top: 4px;
+    color: #666;
+    font-size: 11px;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hold-track {
+    height: 4px;
+    margin-top: 7px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e9e9e9;
+}
+
+.hold-progress {
+    width: 0%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--bg-color);
+    transition: width 80ms linear;
+}
+
+@media (max-width: 720px) {
+    #camera-panel {
+        right: 16px;
+        bottom: 16px;
+        width: min(280px, calc(100vw - 32px));
+    }
+}
+
+
+
+
+#morph-staging {
+    position: fixed;
+    top: -10000px;
+    left: -10000px;
+    width: 500px;
+    height: 500px;
+    visibility: hidden;
+    pointer-events: none;
+}

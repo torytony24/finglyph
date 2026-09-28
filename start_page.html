@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finglyph</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/start_page.css" />
+</head>
+<body>
+    <main id="tutorial-root" aria-label="Finglyph tutorial">
+        <section class="tutorial-step tutorial-step--intro" aria-labelledby="tutorial-title">
+            <img
+                class="tutorial-hand-image"
+                src="assets/tutorial-hand-placeholder.svg"
+                alt="Hand gesture placeholder"
+            />
+            <p id="tutorial-title" class="tutorial-copy">
+                Finglyph is a sign language typography editor that turns hand gestures into visual art instead of text. By drawing and erasing letters in front of the camera, both Deaf and hearing users can experience the beauty of manual alphabets recording and sharing their initials, words, and sentences.
+            </p>
+            <div
+                class="tutorial-progress"
+                role="progressbar"
+                aria-label="Loading the next tutorial step"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0"
+            >
+                <span class="tutorial-progress__fill"></span>
+            </div>
+        </section>
+        <section class="tutorial-step tutorial-step--next" aria-labelledby="next-tutorial-title" hidden>
+            <p id="next-tutorial-title" class="tutorial-copy">
+                (이미지 추가 예정) First, shall we try forming the characters together? 
+            </p>
+            <button class="tutorial-next-button" type="button" data-go-to-practice>
+                start >
+            </button>
+        </section>
+    </main>
+
+    <button class="debug-main-button" type="button" data-go-to-main>메인으로 이동 (디버그)</button>
+
+    <script src="js/start-page.js"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finglyph</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <div class="container">
+        <header class="top-fixed">
+            <h1>Finglyph ङॢी</h1>
+            <div class="top-right-buttons">
+                <button class="nav-btn how-to-use" onclick="showHowToUse()">How to use</button>
+                <button class="nav-btn behind" onclick="showBehind()">Behind</button>
+                <button class="nav-btn description" onclick="showDescription()">Description</button>
+            </div>
+        </header>
+
+        <main class="main-scrollable">
+            <div id="output"></div>
+        </main>
+
+        <footer class="bottom-fixed">
+            <input
+                type="text"
+                id="textInput"
+                placeholder="Type anything..."
+                autocomplete="off"
+                spellcheck="false"
+                autofocus
+            />
+        </footer>
+    </div>
+
+    <div id="morph-staging" aria-hidden="true"></div>
+
+    <aside id="camera-panel" aria-live="polite">
+        <div class="camera-header">
+            <span>Camera input</span>
+            <button id="camera-toggle" type="button">Start camera</button>
+        </div>
+        <div class="camera-preview">
+            <video id="webcam" autoplay playsinline muted></video>
+            <canvas id="hand-overlay" aria-hidden="true"></canvas>
+        </div>
+        <div class="camera-candidate">
+            <span id="camera-glyph" class="glyph-slot camera-glyph" aria-label="Recognized hand sign"></span>
+            <div class="camera-candidate-copy">
+                <strong id="camera-letter">—</strong>
+                <span id="camera-status">Start the camera to recognize hand signs.</span>
+                <div class="hold-track" aria-hidden="true">
+                    <div id="hold-progress" class="hold-progress"></div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    
+    <script src="js/script.js"></script>
+    <script src="js/webcam-basic.js"></script>
+    <script type="module" src="js/hand-recognition.js"></script>
+</body>
+</html>
