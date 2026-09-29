@@ -1,0 +1,9 @@
+{
+  "name": "finglyph-asl-inference",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test experiments/tests/*.test.mjs",
+    "evaluate:landmarks": "node experiments/tools/evaluate-landmarks.mjs"
+  }
+}

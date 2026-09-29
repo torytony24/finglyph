@@ -793,7 +793,7 @@ if (textInput) {
 
 
 (function initWebcam() {
-    // Webcam ownership moved to webcam-input.js.
+    // Webcam ownership is handled by webcam-basic.js.
     return;
     const video = document.getElementById('webcam');
     if (!video) return;

@@ -1,0 +1,5 @@
+{
+  "schema": "asl-decision-policy-v1",
+  "status": "uncalibrated",
+  "note": "Optional per-class thresholds and energy cutoff; create from independent validation/OOD data."
+}

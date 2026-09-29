@@ -1,0 +1,6 @@
+{
+  "schema": "asl-temperature-calibration-v1",
+  "status": "uncalibrated",
+  "temperature": 1,
+  "note": "Replace only with tools/calibrate-temperature.mjs output from an independent validation manifest."
+}
