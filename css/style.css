@@ -97,6 +97,7 @@ h1 {
     overflow: auto;
     padding: 24px 36px;
     scrollbar-width: none;
+    display: flex;
     flex-direction: column;
     align-items: center;
     
@@ -108,22 +109,23 @@ h1 {
 
 #output {
     display: flex;
-    min-height: 120px;
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 100%;
     flex-direction: column;
     align-items: flex-start;
-    /* Vertical spacing */
-    gap: 24px;
-    flex: 1; 
+    justify-content: center;
+    gap: clamp(12px, 2.2vh, 24px);
 }
 
 .word-container {
     display: inline-flex;
-    max-width: 100%;
+    flex: 0 0 auto;
+    max-width: min(100%, var(--card-max-width, 760px));
     align-items: center;
-    /* Horizontal spacing */
     gap: 5px;
     overflow-x: auto;
-    padding: 8px 10px;
+    padding: calc(var(--glyph-size, 48px) * 0.17) calc(var(--glyph-size, 48px) * 0.21);
     background: var(--bg-color);
     scrollbar-width: none; 
 }
@@ -135,9 +137,9 @@ h1 {
 .glyph-slot {
     position: relative;
     display: block;
-    width: 48px;
-    height: 48px;
-    flex: 0 0 48px;
+    width: var(--glyph-size, 48px);
+    height: var(--glyph-size, 48px);
+    flex: 0 0 var(--glyph-size, 48px);
 }
 
 .morph-glyph {

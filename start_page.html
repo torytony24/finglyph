@@ -32,8 +32,13 @@
             </div>
         </section>
         <section class="tutorial-step tutorial-step--next" aria-labelledby="next-tutorial-title" hidden>
+            <div
+                class="tutorial-morph-preview"
+                data-morph-preview
+                aria-label="Finglyph hand-sign preview"
+            ></div>
             <p id="next-tutorial-title" class="tutorial-copy">
-                (이미지 추가 예정) First, shall we try forming the characters together? 
+                First, shall we try forming the characters together?
             </p>
             <button class="tutorial-next-button" type="button" data-go-to-practice>
                 start >
@@ -43,6 +48,9 @@
 
     <button class="debug-main-button" type="button" data-go-to-main>메인으로 이동 (디버그)</button>
 
+    <div id="morph-staging" aria-hidden="true"></div>
+
+    <script src="js/script.js"></script>
     <script src="js/start-page.js"></script>
 </body>
 </html>

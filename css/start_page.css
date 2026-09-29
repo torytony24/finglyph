@@ -23,6 +23,10 @@ body {
     animation: tutorial-step-in 480ms ease-out both;
 }
 
+.tutorial-step--next {
+    width: min(560px, calc(100vw - 48px));
+}
+
 .tutorial-hand-image {
     display: block;
     width: 52px;
@@ -35,6 +39,39 @@ body {
     font-size: 12px;
     font-weight: 300;
     line-height: 1.65;
+}
+
+/* This uses the same hand-sign SVG markup as the editable card on the main page. */
+.tutorial-morph-preview {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin: 0 auto 28px;
+}
+
+.tutorial-morph-preview .word-container {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    gap: 5px;
+    overflow: hidden;
+    padding: calc(var(--glyph-size, 56px) * 0.17) calc(var(--glyph-size, 56px) * 0.21);
+    background: #00ff19;
+}
+
+.tutorial-morph-preview .glyph-slot {
+    position: relative;
+    display: block;
+    width: var(--glyph-size, 56px);
+    height: var(--glyph-size, 56px);
+    flex: 0 0 var(--glyph-size, 56px);
+}
+
+.tutorial-morph-preview .morph-glyph {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
 }
 
 .tutorial-progress {
@@ -106,6 +143,16 @@ body {
     color: #1f1f1f;
 }
 
+#morph-staging {
+    position: fixed;
+    top: -10000px;
+    left: -10000px;
+    width: 500px;
+    height: 500px;
+    visibility: hidden;
+    pointer-events: none;
+}
+
 @keyframes tutorial-step-in {
     from {
         opacity: 0;
@@ -130,4 +177,14 @@ body {
         animation-duration: 1ms;
     }
 
+}
+
+@media (max-width: 560px) {
+    .tutorial-step--next {
+        width: min(calc(100% - 32px), 560px);
+    }
+
+    .tutorial-morph-preview .word-container {
+        --glyph-size: clamp(40px, 11vw, 56px) !important;
+    }
 }

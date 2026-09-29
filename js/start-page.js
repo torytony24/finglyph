@@ -40,6 +40,10 @@ introStep.addEventListener('animationend', (event) => {
 
     introStep.hidden = true;
     nextStep.hidden = false;
+    window.FinglyphGlyphMorph?.renderWord(
+        document.querySelector('[data-morph-preview]'),
+        'finglyph',
+    );
     window.dispatchEvent(new Event('tutorial:step-complete'));
 });
 

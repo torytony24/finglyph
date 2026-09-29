@@ -1,4 +1,4 @@
-const DEFAULT_WORDS = ['abcddbac', 'a', 'abbaccc', 'cbaddd'];
+const DEFAULT_WORDS = ['finglyph'];
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const SIGNS_PATH = 'assets/signs';
@@ -23,6 +23,17 @@ const slotTimers = new WeakMap();
 let uniqueId = 0;
 let renderedRecords = [];
 let staging;
+let currentWords = [];
+
+const CARD_SIZE = {
+    maximum: 96,
+    minimum: 48,
+    decreasePerWord: 8,
+    gap: 5,
+    horizontalPaddingRatio: 0.42,
+    maxWidth: 760,
+    viewportWidthRatio: 0.82,
+};
 
 function clamp01(value) {
     return Math.max(0, Math.min(1, value));
@@ -510,6 +521,39 @@ async function hydrateGlyph(
     }
 }
 
+// Kept public so non-editor screens can show the exact same sign-card preview.
+window.FinglyphGlyphMorph = {
+    renderWord(container, word, { animate = true, glyphSize = 56 } = {}) {
+        if (!container || !staging) return;
+
+        const characters = [...filterWord(String(word || ''))];
+        const wordContainer = document.createElement('div');
+        wordContainer.className = 'word-container';
+        wordContainer.setAttribute('role', 'img');
+        wordContainer.setAttribute('aria-label', `${word} hand-sign card`);
+        wordContainer.style.setProperty('--glyph-size', `${glyphSize}px`);
+
+        const records = characters.map((character, index) => {
+            const sourceCharacter = index > 0 ? characters[index - 1] : FIST_LETTER;
+            const record = createGlyphRecord(character, sourceCharacter);
+            wordContainer.appendChild(record.slot);
+            return record;
+        });
+
+        container.replaceChildren(wordContainer);
+
+        records.forEach((record, index) => {
+            hydrateGlyph(
+                record.slot,
+                record.sourceCharacter,
+                record.character,
+                animate,
+                index * PASTE_STAGGER,
+            );
+        });
+    },
+};
+
 function createGlyphRecord(character, sourceCharacter) {
     const slot = document.createElement('span');
     slot.className = 'glyph-slot';
@@ -538,6 +582,34 @@ function flattenWords(words) {
     return words.flatMap(word => [...word]);
 }
 
+function updateCardSizing(words) {
+    const output = document.getElementById('output');
+    if (!output || !words.length) return;
+
+    const availableWidth = output.clientWidth;
+    const maxCardWidth = Math.min(
+        CARD_SIZE.maxWidth,
+        Math.floor(availableWidth * CARD_SIZE.viewportWidthRatio),
+    );
+    const sizeForWordCount = Math.max(
+        CARD_SIZE.minimum,
+        CARD_SIZE.maximum - (words.length - 1) * CARD_SIZE.decreasePerWord,
+    );
+
+    output.style.setProperty('--card-max-width', `${maxCardWidth}px`);
+
+    words.forEach((word, index) => {
+        const wordLength = [...word].length;
+        const sizeForWidth = (maxCardWidth - CARD_SIZE.gap * (wordLength - 1))
+            / (wordLength + CARD_SIZE.horizontalPaddingRatio);
+        const glyphSize = Math.max(
+            CARD_SIZE.minimum,
+            Math.min(sizeForWordCount, Math.floor(sizeForWidth)),
+        );
+        output.children[index]?.style.setProperty('--glyph-size', `${glyphSize}px`);
+    });
+}
+
 function showPlaceholder(output) {
     const placeholder = document.createElement('span');
     placeholder.className = 'output-placeholder';
@@ -547,6 +619,7 @@ function showPlaceholder(output) {
 
 function reconcileOutput(words, animateNew) {
     const output = document.getElementById('output');
+    currentWords = words;
     const characters = flattenWords(words);
     const oldCharacters = renderedRecords.map(record => record.character);
     const nextRecords = new Array(characters.length);
@@ -611,6 +684,7 @@ function reconcileOutput(words, animateNew) {
     });
 
     output.replaceChildren(fragment);
+    updateCardSizing(words);
 
     pending.forEach((record, index) => {
         hydrateGlyph(
@@ -623,6 +697,7 @@ function reconcileOutput(words, animateNew) {
     });
 
     requestAnimationFrame(() => {
+        updateCardSizing(currentWords);
         const lastWord = output.lastElementChild;
         if (lastWord) lastWord.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     });
@@ -637,6 +712,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('textInput');
     staging = document.getElementById('morph-staging');
 
+    if (!input || !staging) return;
+
     input.value = DEFAULT_WORDS.join(' ');
     reconcileOutput(DEFAULT_WORDS, true);
 
@@ -644,6 +721,7 @@ window.addEventListener('DOMContentLoaded', () => {
     loadSvgTemplate(FIST_LETTER).catch(() => {});
 
     input.addEventListener('input', handleInput);
+    window.addEventListener('resize', () => updateCardSizing(currentWords));
     input.addEventListener('keydown', event => {
         if (event.key === 'Enter') {
             event.preventDefault(); 
@@ -705,10 +783,12 @@ function resizeInput() {
 }
 
 // Resize whenever the value changes.
-textInput.addEventListener('input', resizeInput);
+if (textInput) {
+    textInput.addEventListener('input', resizeInput);
 
-// Resize once when the page loads.
-window.addEventListener('DOMContentLoaded', resizeInput);
+    // Resize once when the page loads.
+    window.addEventListener('DOMContentLoaded', resizeInput);
+}
 
 
 
