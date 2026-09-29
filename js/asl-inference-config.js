@@ -26,10 +26,11 @@ export const DEFAULT_ASL_INFERENCE_CONFIG = Object.freeze({
         majorityVoteFrames: 15,
         entryThreshold: 0.80,
         exitThreshold: 0.60,
-        debounceMs: 2000,
+        debounceMs: 1200,
         releaseDelayMs: 250,
         // J/Z remain static-sign inference only; no sequential recognizer is used.
         entryThresholdByClass: {
+            C: 0.75,
             L: 0.60,
             J: 0.60,
             M: 0.50,
@@ -66,6 +67,7 @@ export const DEFAULT_ASL_INFERENCE_CONFIG = Object.freeze({
         defaultThreshold: 0.80,
         top2Margin: 0.10,
         perClassThresholds: {
+            C: 0.75,
             L: 0.60,
             J: 0.60,
             M: 0.50,
