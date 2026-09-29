@@ -232,7 +232,7 @@ h1 {
     aspect-ratio: 16 / 9;
     overflow: hidden;
     border-radius: 8px;
-    background: #171717;
+    background: url('../assets/thumbnail.png') center / cover no-repeat;
 }
 
 #webcam,

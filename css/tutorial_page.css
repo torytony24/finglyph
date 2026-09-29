@@ -3,7 +3,7 @@
 body { min-width: 320px; min-height: 100vh; min-height: 100dvh; margin: 0; overflow: hidden; background: #fff; color: var(--ink); font-family: 'Poppins', Arial, sans-serif; }
 .practice-page { position: relative; display: grid; min-height: inherit; place-items: center; padding: 36px; }
 .camera-module { width: min(420px, calc(100vw - 48px)); transition: opacity 620ms ease, transform 620ms ease; }
-.camera-frame { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 8px; background: #f4f4f4; }
+.camera-frame { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 8px; background: url('../assets/thumbnail.png') center / cover no-repeat; }
 #webcam, #hand-overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
 #webcam { object-fit: cover; transform: scaleX(-1); } #hand-overlay { pointer-events: none; transform: scaleX(-1); }
 #camera-status { position: absolute; right: 12px; bottom: 10px; left: 12px; margin: 0; color: #fff; font-size: 11px; line-height: 1.3; text-align: center; text-shadow: 0 1px 8px rgba(0,0,0,.6); }
