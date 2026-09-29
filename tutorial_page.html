@@ -8,14 +8,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="css/tutorial_page.css" />
+    <link rel="stylesheet" href="css/mobile-unsupported.css" />
 </head>
 <body>
+    <div class="mobile-unsupported" role="main">
+        <p>모바일은 지원하지 않습니다.<br />컴퓨터에서 이용해 주세요.</p>
+    </div>
     <main class="practice-page" aria-label="Hand-sign practice">
         <section class="camera-module" aria-label="Hand recognition camera">
             <div class="camera-frame">
                 <video id="webcam" autoplay playsinline muted></video>
                 <canvas id="hand-overlay" aria-hidden="true"></canvas>
-                <p id="camera-status" aria-live="polite">Preparing the camera…</p>
+                <p id="camera-status" aria-live="polite">Preparing the camera...</p>
             </div>
             <button id="camera-retry" type="button" hidden>Try camera again</button>
         </section>
@@ -29,8 +33,13 @@
         </section>
 
         <section id="found-gestures" aria-label="Recognized hand gestures"></section>
-        <a class="skip-link" href="main_page.html">Skip <span aria-hidden="true">›</span></a>
+        <button id="debug-recognize-next" class="debug-recognize-next" type="button">Debug: recognize next</button>
+        <a class="skip-link" href="main_page.html">Skip <span aria-hidden="true">&rarr;</span></a>
     </main>
-    <script type="module" src="js/tutorial-page.js"></script>
+    <script type="module">
+        if (!window.matchMedia('(max-width: 767px)').matches) {
+            import('./js/tutorial-page.js');
+        }
+    </script>
 </body>
 </html>

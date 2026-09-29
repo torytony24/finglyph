@@ -22,18 +22,78 @@ export const DEFAULT_ASL_INFERENCE_CONFIG = Object.freeze({
         oneEuroDerivativeCutoff: 1.0,
         landmarkEmaAlpha: 0.35,
         probabilityEmaAlpha: 0.35,
-        majorityVoteFrames: 7,
-        entryThreshold: 0.85,
-        exitThreshold: 0.70,
-        debounceMs: 300,
+        // Longer evidence window reduces accidental confirmations.
+        majorityVoteFrames: 15,
+        entryThreshold: 0.80,
+        exitThreshold: 0.60,
+        debounceMs: 2000,
         releaseDelayMs: 250,
+        // J/Z remain static-sign inference only; no sequential recognizer is used.
+        entryThresholdByClass: {
+            L: 0.60,
+            J: 0.60,
+            M: 0.50,
+            N: 0.50,
+            O: 0.70,
+            P: 0.45,
+            R: 0.50,
+            S: 0.50,
+            T: 0.50,
+            U: 0.50,
+            V: 0.50,
+            X: 0.70,
+            Z: 0.70,
+        },
+        exitThresholdByClass: {
+            L: 0.50,
+            J: 0.50,
+            M: 0.40,
+            N: 0.40,
+            O: 0.60,
+            P: 0.35,
+            R: 0.40,
+            S: 0.40,
+            T: 0.40,
+            U: 0.40,
+            V: 0.40,
+            X: 0.60,
+            Z: 0.60,
+        },
     },
     confidence: {
         calibrationPath: 'assets/models/asl-calibration.json',
         policyPath: 'assets/models/asl-decision-policy.json',
-        defaultThreshold: 0.85,
-        top2Margin: 0.15,
-        perClassThresholds: {},
+        defaultThreshold: 0.80,
+        top2Margin: 0.10,
+        perClassThresholds: {
+            L: 0.60,
+            J: 0.60,
+            M: 0.50,
+            N: 0.50,
+            O: 0.70,
+            P: 0.45,
+            R: 0.50,
+            S: 0.50,
+            T: 0.50,
+            U: 0.50,
+            V: 0.50,
+            X: 0.70,
+            Z: 0.70,
+        },
+        // Higher within-group margins reject visually ambiguous static signs.
+        confusionGroupMargins: [
+            { letters: ['M', 'N', 'S', 'T'], minMargin: 0.08 },
+            { letters: ['U', 'V'], minMargin: 0.12 },
+        ],
+        top2MarginByClass: {
+            M: 0.08,
+            N: 0.08,
+            P: 0.08,
+            S: 0.08,
+            T: 0.08,
+        },
+        // If R narrowly beats U, treat it as U for right-hand static signs.
+        uFromRAmbiguityMargin: 0.12,
         maxEnergy: null,
     },
 });
@@ -58,5 +118,17 @@ export function resolveInferenceConfig(overrides = {}) {
     if (!(temporal.entryThreshold >= temporal.exitThreshold && temporal.entryThreshold <= 1 && temporal.exitThreshold >= 0)) throw new Error('Invalid hysteresis thresholds.');
     if (!(temporal.debounceMs >= 0 && temporal.releaseDelayMs >= 0)) throw new Error('Temporal durations must be non-negative.');
     if (!(config.confidence.defaultThreshold >= 0 && config.confidence.defaultThreshold <= 1 && config.confidence.top2Margin >= 0)) throw new Error('Invalid confidence policy.');
+    for (const [letter, threshold] of Object.entries(temporal.entryThresholdByClass ?? {})) {
+        const exit = temporal.exitThresholdByClass?.[letter] ?? temporal.exitThreshold;
+        if (!/^[A-Z]$/.test(letter) || !(threshold >= exit && threshold <= 1 && exit >= 0)) throw new Error(`Invalid class hysteresis for ${letter}.`);
+    }
+    for (const [letter, threshold] of Object.entries(config.confidence.perClassThresholds ?? {})) {
+        if (!/^[A-Z]$/.test(letter) || !(threshold >= 0 && threshold <= 1)) throw new Error(`Invalid class threshold for ${letter}.`);
+    }
+    for (const [letter, margin] of Object.entries(config.confidence.top2MarginByClass ?? {})) {
+        if (!/^[A-Z]$/.test(letter) || !(margin >= 0 && margin <= 1)) throw new Error(`Invalid class margin for ${letter}.`);
+    }
+    if ((config.confidence.confusionGroupMargins ?? []).some(group => !Array.isArray(group.letters) || !(group.minMargin >= 0 && group.minMargin <= 1))) throw new Error('Invalid confusion-group margin.');
+    if (!(config.confidence.uFromRAmbiguityMargin >= 0 && config.confidence.uFromRAmbiguityMargin <= 1)) throw new Error('Invalid U/R ambiguity margin.');
     return config;
 }

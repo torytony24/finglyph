@@ -1,0 +1,28 @@
+.mobile-unsupported {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    body > :not(.mobile-unsupported) {
+        display: none !important;
+    }
+
+    .mobile-unsupported {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: #fff;
+        color: #1f1f1f;
+        font-family: 'Poppins', Arial, Helvetica, sans-serif;
+        text-align: center;
+    }
+
+    .mobile-unsupported p {
+        max-width: 280px;
+        font-size: 16px;
+        line-height: 1.5;
+    }
+}

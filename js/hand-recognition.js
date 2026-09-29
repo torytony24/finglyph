@@ -1,7 +1,8 @@
 import { classifyLandmarks, loadClassifier } from './landmark-classifier.js';
 import { resolveInferenceConfig } from './asl-inference-config.js';
 import { LandmarkTemporalFilter, ProbabilityTemporalStabilizer } from './temporal-stabilization.js';
-import { applyTemperature, energyScore, evaluateConfidencePolicy, loadConfidenceArtifacts } from './confidence-postprocessing.js';
+import { applyTemperature, applyURAmbiguityRule, energyScore, evaluateConfidencePolicy, loadConfidenceArtifacts } from './confidence-postprocessing.js';
+import { createRawPredictionDebugOverlay } from './debug-prediction-overlay.js';
 
 const config = resolveInferenceConfig(window.FinglyphAslConfig);
 const HOLD_DURATION_MS = config.temporal.debounceMs;
@@ -27,6 +28,7 @@ const landmarkFilter = new LandmarkTemporalFilter(config.temporal);
 const probabilityStabilizer = new ProbabilityTemporalStabilizer(config.temporal);
 let confidencePolicy = config.confidence;
 let temperature = 1;
+const rawDebug = createRawPredictionDebugOverlay(document.getElementById('camera-panel'));
 
 function status(message) {
     document.getElementById('camera-status').textContent = message;
@@ -148,19 +150,25 @@ async function recognizeFrame(video) {
     if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
         const result = handLandmarker.detectForVideo(video, now);
         const rawLandmarks = result.landmarks?.[0];
-        drawLandmarks(rawLandmarks);
 
         if (rawLandmarks) {
             lastHandSeenAt = now;
             const filteredLandmarks = landmarkFilter.update(rawLandmarks, now);
+            drawLandmarks(filteredLandmarks);
             const rawPrediction = classifyLandmarks(filteredLandmarks, classifierModel);
-            const calibratedPrediction = applyTemperature(rawPrediction, temperature);
+            rawDebug.update(rawPrediction);
+            const calibratedPrediction = applyURAmbiguityRule(
+                applyTemperature(rawPrediction, temperature),
+                confidencePolicy.uFromRAmbiguityMargin,
+            );
             if (calibratedPrediction) calibratedPrediction.energy = energyScore(calibratedPrediction.logits, temperature);
             const stabilizedPrediction = probabilityStabilizer.update(calibratedPrediction);
             if (stabilizedPrediction && calibratedPrediction) stabilizedPrediction.energy = calibratedPrediction.energy;
             const decision = evaluateConfidencePolicy(stabilizedPrediction, confidencePolicy);
             updateCandidate(decision.accepted ? stabilizedPrediction : null, now);
         } else if (now - lastHandSeenAt >= RELEASE_DELAY_MS) {
+            drawLandmarks(null);
+            rawDebug.clear();
             resetCandidate('Looking for a hand.');
             lockedLetter = null;
             resetTemporalState();

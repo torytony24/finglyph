@@ -96,6 +96,14 @@ export class ProbabilityTemporalStabilizer {
         this.activeIndex = null;
     }
 
+    entryThreshold(label) {
+        return this.config.entryThresholdByClass?.[label] ?? this.config.entryThreshold;
+    }
+
+    exitThreshold(label) {
+        return this.config.exitThresholdByClass?.[label] ?? this.config.exitThreshold;
+    }
+
     update(prediction) {
         if (!prediction?.probabilities?.length) return null;
         const probabilities = prediction.probabilities;
@@ -123,14 +131,17 @@ export class ProbabilityTemporalStabilizer {
         const votedConfidence = this.emaProbabilities[votedIndex];
         const hasMajority = voteCounts[votedIndex] >= Math.ceil(this.config.majorityVoteFrames / 2);
 
+        const votedLabel = prediction.labels?.[votedIndex];
         if (this.activeIndex === null) {
-            if (hasMajority && votedConfidence >= this.config.entryThreshold) this.activeIndex = votedIndex;
-        } else if (this.emaProbabilities[this.activeIndex] < this.config.exitThreshold) {
+            if (hasMajority && votedConfidence >= this.entryThreshold(votedLabel)) this.activeIndex = votedIndex;
+        } else if (this.emaProbabilities[this.activeIndex] < this.exitThreshold(prediction.labels?.[this.activeIndex])) {
             this.activeIndex = null;
-            if (hasMajority && votedConfidence >= this.config.entryThreshold) this.activeIndex = votedIndex;
+            if (hasMajority && votedConfidence >= this.entryThreshold(votedLabel)) this.activeIndex = votedIndex;
         }
 
         return {
+            // Preserve the class-index mapping for downstream pair/group checks.
+            labels: prediction.labels,
             rawIndex: prediction.index,
             rawLetter: prediction.letter,
             rawConfidence: prediction.confidence,
