@@ -96,7 +96,6 @@ function finalLayout() {
     const cardSize = Math.round(Math.min(130, Math.max(48, window.innerWidth * 0.11)));
     const gap = Math.round(Math.min(26, Math.max(12, window.innerWidth * 0.025)));
     const columns = Math.min(cards.length, Math.max(1, Math.floor((window.innerWidth - padding * 2 + gap) / (cardSize + gap))));
-    const groupWidth = columns * cardSize + (columns - 1) * gap;
     const startX = padding;
     const startY = padding;
     const duration = FINAL_LAYOUT_MS;

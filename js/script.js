@@ -10,8 +10,6 @@ const FRAME_COUNT = 5;
 // the A/fist pose unmistakable before the hand starts opening.
 const FRAME_DURATIONS = [260, 120, 100, 120];
 const CONTOUR_POINTS = 256;
-const CANVAS_SIZE = 100;
-const PADDING = 8;
 const DETAIL_SOURCE_END = 0.5;
 const DETAIL_TARGET_START = 0.5;
 const PASTE_STAGGER = 45;
@@ -91,33 +89,24 @@ async function loadSvgTemplate(character) {
     return templateCache.get(cacheKey);
 }
 
-function computeFitTransform(outer) {
-    const bbox = outer.getBBox();
+function readViewBox(svg) {
+    const values = (svg.getAttribute('viewBox') || '')
+        .trim()
+        .split(/[\s,]+/)
+        .map(Number);
 
-    if (!bbox.width || !bbox.height) {
-        throw new Error('The outer path has zero size.');
+    if (values.length !== 4 || values.some(value => !Number.isFinite(value))
+        || values[2] <= 0 || values[3] <= 0) {
+        throw new Error('Each hand-sign SVG must define a valid viewBox.');
     }
 
-    const available = CANVAS_SIZE - PADDING * 2;
-    const scale = Math.min(available / bbox.width, available / bbox.height);
-    const scaledWidth = bbox.width * scale;
-    const scaledHeight = bbox.height * scale;
-
+    const [x, y, width, height] = values;
     return {
-        scale,
-        tx: (CANVAS_SIZE - scaledWidth) / 2 - bbox.x * scale,
-        ty: (CANVAS_SIZE - scaledHeight) / 2 - bbox.y * scale,
+        value: `${x} ${y} ${width} ${height}`,
     };
 }
 
-function transformPoint(point, transform) {
-    return {
-        x: point.x * transform.scale + transform.tx,
-        y: point.y * transform.scale + transform.ty,
-    };
-}
-
-function samplePath(path, transform, count) {
+function samplePath(path, count) {
     if (typeof path.getTotalLength !== 'function') {
         throw new Error('data-role="outer" must be a path element.');
     }
@@ -127,7 +116,7 @@ function samplePath(path, transform, count) {
 
     for (let index = 0; index < count; index += 1) {
         const point = path.getPointAtLength(length * index / count);
-        points.push(transformPoint(point, transform));
+        points.push({ x: point.x, y: point.y });
     }
 
     return points;
@@ -221,16 +210,13 @@ async function prepareMorphGeometry(sourceCharacter, targetCharacter) {
                 );
             }
 
-            const sourceTransform = computeFitTransform(sourceOuter);
-            const targetTransform = computeFitTransform(targetOuter);
-            const sourcePoints = samplePath(sourceOuter, sourceTransform, CONTOUR_POINTS);
-            const sampledTarget = samplePath(targetOuter, targetTransform, CONTOUR_POINTS);
+            const sourcePoints = samplePath(sourceOuter, CONTOUR_POINTS);
+            const sampledTarget = samplePath(targetOuter, CONTOUR_POINTS);
 
             return {
                 sourceSvg,
                 targetSvg,
-                sourceTransform,
-                targetTransform,
+                targetViewBox: readViewBox(targetSvg),
                 sourcePoints,
                 targetPoints: alignContours(sourcePoints, sampledTarget),
                 fill: sourceOuter.getAttribute('fill') || '#e9fea3',
@@ -284,16 +270,12 @@ function createDetailItem(source, fitGroup, defs, side) {
     };
 }
 
-function createDetails(sourceSvg, fitTransform, outputSvg, defs, side) {
-    const fitGroup = document.createElementNS(SVG_NS, 'g');
-    fitGroup.setAttribute(
-        'transform',
-        `translate(${fitTransform.tx} ${fitTransform.ty}) scale(${fitTransform.scale})`,
-    );
-    outputSvg.appendChild(fitGroup);
+function createDetails(sourceSvg, outputSvg, defs, side) {
+    const detailGroup = document.createElementNS(SVG_NS, 'g');
+    outputSvg.appendChild(detailGroup);
 
     return [...sourceSvg.querySelectorAll('[data-role="detail"]')]
-        .map(detail => createDetailItem(detail, fitGroup, defs, side));
+        .map(detail => createDetailItem(detail, detailGroup, defs, side));
 }
 
 function renderLine(item, amount) {
@@ -343,7 +325,8 @@ function renderDetails(details, amount) {
 function createMorphState(geometry, character, slot) {
     const outputSvg = document.createElementNS(SVG_NS, 'svg');
     outputSvg.classList.add('morph-glyph');
-    outputSvg.setAttribute('viewBox', `0 0 ${CANVAS_SIZE} ${CANVAS_SIZE}`);
+    outputSvg.setAttribute('viewBox', geometry.targetViewBox.value);
+    outputSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     outputSvg.setAttribute('role', 'img');
     outputSvg.setAttribute('aria-label', `${character.toUpperCase()} hand sign`);
 
@@ -357,14 +340,12 @@ function createMorphState(geometry, character, slot) {
 
     const sourceDetails = createDetails(
         geometry.sourceSvg,
-        geometry.sourceTransform,
         outputSvg,
         defs,
         'source',
     );
     const targetDetails = createDetails(
         geometry.targetSvg,
-        geometry.targetTransform,
         outputSvg,
         defs,
         'target',
@@ -460,22 +441,22 @@ function createFallbackSVG(character) {
     const text = document.createElementNS(SVG_NS, 'text');
 
     svg.classList.add('morph-glyph', 'glyph-fallback');
-    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('viewBox', '0 0 1 1');
     svg.setAttribute('role', 'img');
     svg.setAttribute('aria-label', `${character.toUpperCase()} fallback character`);
 
-    rect.setAttribute('x', '8');
-    rect.setAttribute('y', '8');
-    rect.setAttribute('width', '84');
-    rect.setAttribute('height', '84');
-    rect.setAttribute('rx', '8');
+    rect.setAttribute('x', '.08');
+    rect.setAttribute('y', '.08');
+    rect.setAttribute('width', '.84');
+    rect.setAttribute('height', '.84');
+    rect.setAttribute('rx', '.08');
     rect.setAttribute('fill', '#e9fea3');
 
-    text.setAttribute('x', '50');
-    text.setAttribute('y', '54');
+    text.setAttribute('x', '.5');
+    text.setAttribute('y', '.54');
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dominant-baseline', 'middle');
-    text.setAttribute('font-size', '38');
+    text.setAttribute('font-size', '.38');
     text.setAttribute('font-family', 'Poppins, Arial, Helvetica, sans-serif');
     text.setAttribute('fill', '#2c6239');
     text.textContent = character.toUpperCase();
@@ -600,13 +581,14 @@ function updateCardSizing(words) {
 
     words.forEach((word, index) => {
         const wordLength = [...word].length;
+        const wordContainer = output.children[index];
         const sizeForWidth = (maxCardWidth - CARD_SIZE.gap * (wordLength - 1))
             / (wordLength + CARD_SIZE.horizontalPaddingRatio);
         const glyphSize = Math.max(
             CARD_SIZE.minimum,
             Math.min(sizeForWordCount, Math.floor(sizeForWidth)),
         );
-        output.children[index]?.style.setProperty('--glyph-size', `${glyphSize}px`);
+        wordContainer?.style.setProperty('--glyph-size', `${glyphSize}px`);
     });
 }
 
