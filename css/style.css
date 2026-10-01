@@ -198,28 +198,80 @@ h1 {
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
 }
 
-.camera-header,
 .camera-candidate {
     display: flex;
     align-items: center;
 }
 
-.camera-header {
-    justify-content: space-between;
-    margin-bottom: 10px;
-    font-size: 13px;
-    font-weight: 500;
-}
-
 #camera-toggle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    display: inline-flex;
+    min-height: 27px;
+    align-items: center;
+    gap: 5px;
     border: 0;
-    border-radius: 6px;
-    padding: 6px 9px;
-    background: var(--ink-color);
+    border-radius: 999px;
+    padding: 0 8px;
+    background: rgba(22, 22, 22, 0.58);
     color: #fff;
     font: inherit;
-    font-size: 12px;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1;
     cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background-color 160ms ease;
+}
+
+#camera-toggle:hover:not(:disabled) {
+    background: rgba(22, 22, 22, 0.84);
+}
+
+#camera-toggle:active:not(:disabled) {
+    background: rgba(22, 22, 22, 1);
+}
+
+#camera-toggle:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.camera-toggle-indicator {
+    width: 6px;
+    height: 6px;
+    flex: 0 0 6px;
+    border-radius: 50%;
+    background: #9a9a9a;
+}
+
+.camera-toggle-icon {
+    display: block;
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    transform: translateY(-1px);
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.7;
+}
+
+.camera-toggle-label {
+    display: block;
+    line-height: 1;
+}
+
+#camera-toggle[data-state="on"] .camera-toggle-indicator {
+    background: var(--bg-color);
+    box-shadow: 0 0 8px rgba(0, 255, 25, 0.75);
+}
+
+#camera-toggle[data-state="starting"] .camera-toggle-indicator {
+    background: #ffd166;
 }
 
 #camera-toggle:disabled {
@@ -256,6 +308,7 @@ h1 {
 .camera-candidate {
     gap: 10px;
     margin-top: 10px;
+    min-height: 64px;
 }
 
 .camera-glyph {
@@ -266,6 +319,14 @@ h1 {
     background: var(--bg-color);
 }
 
+.camera-candidate.is-empty .camera-glyph {
+    background: #e9e9e9;
+}
+
+.camera-candidate.is-empty .camera-glyph > * {
+    visibility: hidden;
+}
+
 .camera-candidate-copy {
     min-width: 0;
     flex: 1;
@@ -273,18 +334,18 @@ h1 {
 
 #camera-letter {
     display: block;
+    min-height: 20px;
     font-size: 20px;
     line-height: 1;
+    visibility: hidden;
 }
 
 #camera-status {
     display: block;
-    overflow: hidden;
     margin-top: 4px;
     color: #666;
     font-size: 11px;
-    line-height: 1.3;
-    text-overflow: ellipsis;
+    line-height: 1.35;
     white-space: nowrap;
 }
 
@@ -309,6 +370,12 @@ h1 {
         right: 16px;
         bottom: 16px;
         width: min(280px, calc(100vw - 32px));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #camera-toggle {
+        transition: none;
     }
 }
 

@@ -19,7 +19,7 @@
             <h1>Finglyph</h1>
             <div class="top-right-buttons">
                 <button class="nav-btn how-to-use" onclick="showHowToUse()">How to use</button>
-                <button class="nav-btn behind" onclick="showBehind()">Behind</button>
+                <button class="nav-btn behind" onclick="window.location.href='behind_temp/Behind.html'">Behind</button>
                 <button class="nav-btn description" onclick="showDescription()">Description</button>
             </div>
         </header>
@@ -43,19 +43,23 @@
     <div id="morph-staging" aria-hidden="true"></div>
 
     <aside id="camera-panel" aria-live="polite">
-        <div class="camera-header">
-            <span>Camera input</span>
-            <button id="camera-toggle" type="button">Start camera</button>
-        </div>
         <div class="camera-preview">
             <video id="webcam" autoplay playsinline muted></video>
             <canvas id="hand-overlay" aria-hidden="true"></canvas>
+            <button id="camera-toggle" type="button" data-state="off" aria-label="Start camera" aria-pressed="false" title="Start camera">
+                <svg class="camera-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M4 7.5h3l1.5-2h7l1.5 2h3A1.5 1.5 0 0 1 21.5 9v9A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18V9A1.5 1.5 0 0 1 4 7.5Z" />
+                    <circle cx="12" cy="13.5" r="3.25" />
+                </svg>
+                <span id="camera-toggle-label" class="camera-toggle-label">Start camera</span>
+                <span class="camera-toggle-indicator" aria-hidden="true"></span>
+            </button>
         </div>
-        <div class="camera-candidate">
-            <span id="camera-glyph" class="glyph-slot camera-glyph" aria-label="Recognized hand sign"></span>
+        <div class="camera-candidate is-empty">
+            <span id="camera-glyph" class="glyph-slot camera-glyph" aria-hidden="true"></span>
             <div class="camera-candidate-copy">
-                <strong id="camera-letter">—</strong>
-                <span id="camera-status">Start the camera to recognize hand signs.</span>
+                <strong id="camera-letter" aria-hidden="true"></strong>
+                <span id="camera-status">Start camera to begin.</span>
                 <div class="hold-track" aria-hidden="true">
                     <div id="hold-progress" class="hold-progress"></div>
                 </div>

@@ -13,18 +13,27 @@ function clearOverlay() {
     context.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+function setToggleState(state, label, { disabled = false, pressed = false } = {}) {
+    const button = document.getElementById('camera-toggle');
+    button.dataset.state = state;
+    button.disabled = disabled;
+    button.setAttribute('aria-pressed', String(pressed));
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    document.getElementById('camera-toggle-label').textContent = label;
+}
+
 async function startCamera() {
     const video = document.getElementById('webcam');
-    const button = document.getElementById('camera-toggle');
 
     if (!navigator.mediaDevices?.getUserMedia) {
-        setStatus('This browser does not support webcam access.');
+        setStatus('Camera not supported.');
+        setToggleState('error', 'Try again');
         return;
     }
 
-    button.disabled = true;
-    button.textContent = 'Opening...';
-    setStatus('Requesting camera permission.');
+    setToggleState('starting', 'Starting…', { disabled: true });
+    setStatus('Requesting camera access.');
 
     try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -38,38 +47,38 @@ async function startCamera() {
         });
         video.srcObject = stream;
         await video.play();
-        button.textContent = 'Stop camera';
-        setStatus(`Camera is on (${video.videoWidth}×${video.videoHeight}); loading hand recognition.`);
+        setToggleState('on', 'Stop camera', { pressed: true });
+        setStatus('Camera on. Loading recognition.');
         window.dispatchEvent(new CustomEvent('finglyph:camera-started', {
             detail: { video },
         }));
     } catch (error) {
         console.error('Could not start webcam:', error);
+        stream?.getTracks().forEach(track => track.stop());
+        stream = null;
+        video.srcObject = null;
         const message = error.name === 'NotAllowedError'
-            ? 'Camera permission was denied. Allow it in the browser settings.'
-            : 'Could not start the camera. Check that no other app is using it.';
+            ? 'Camera permission denied.'
+            : 'Camera unavailable. Try again.';
         setStatus(message);
-        button.textContent = 'Try again';
-    } finally {
-        button.disabled = false;
+        setToggleState('error', 'Try again');
     }
 }
 
 function stopCamera() {
     const video = document.getElementById('webcam');
-    const button = document.getElementById('camera-toggle');
-
     stream?.getTracks().forEach(track => track.stop());
     stream = null;
     video.srcObject = null;
     clearOverlay();
     window.dispatchEvent(new Event('finglyph:camera-stopped'));
-    button.textContent = 'Start camera';
+    setToggleState('off', 'Start camera');
     setStatus('Camera is off.');
 }
 
 window.addEventListener('DOMContentLoaded', () => {
     const button = document.getElementById('camera-toggle');
+    setToggleState('off', 'Start camera');
     button.addEventListener('click', () => {
         if (stream?.active) stopCamera();
         else startCamera();

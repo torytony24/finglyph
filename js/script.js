@@ -793,7 +793,7 @@ if (textInput) {
 
 // Webcam input uses this bridge so candidate poses reuse the same SVG morph
 // pipeline as keyboard-entered letters.
-let cameraPreviewLetter = FIST_LETTER;
+let cameraPreviewLetter = null;
 
 window.FinglyphCameraInput = {
     showCandidate(character) {
@@ -804,7 +804,7 @@ window.FinglyphCameraInput = {
             return;
         }
 
-        const sourceLetter = cameraPreviewLetter;
+        const sourceLetter = cameraPreviewLetter || FIST_LETTER;
         cameraPreviewLetter = letter;
         hydrateGlyph(slot, sourceLetter, letter, true);
     },

@@ -15,6 +15,9 @@ const HAND_CONNECTIONS = [
     [0, 13], [13, 14], [14, 15], [15, 16],
     [0, 17], [17, 18], [18, 19], [19, 20], [5, 9], [9, 13], [13, 17],
 ];
+const HAND_BONE_COLOR = getComputedStyle(document.documentElement)
+    .getPropertyValue('--fill-color')
+    .trim() || '#f4f4f4';
 
 let handLandmarker;
 let classifierModel;
@@ -40,8 +43,15 @@ function progress(value) {
 
 function showLetter(letter, confidence = null) {
     const label = document.getElementById('camera-letter');
-    label.textContent = letter || '-';
-    label.title = confidence === null ? '' : `${Math.round(confidence * 100)}%`;
+    const glyph = document.getElementById('camera-glyph');
+    const candidate = label.closest('.camera-candidate');
+    const validLetter = /^[A-Z]$/.test(String(letter || '').toUpperCase());
+    label.style.visibility = validLetter ? 'visible' : 'hidden';
+    label.setAttribute('aria-hidden', String(!validLetter));
+    candidate.classList.toggle('is-empty', !validLetter);
+    glyph.setAttribute('aria-hidden', String(!validLetter));
+    label.textContent = validLetter ? String(letter).toUpperCase() : '';
+    label.title = validLetter && confidence !== null ? `${Math.round(confidence * 100)}%` : '';
 }
 
 async function prepareRecognizers() {
@@ -80,8 +90,8 @@ function drawLandmarks(landmarks) {
     context.clearRect(0, 0, canvas.width, canvas.height);
     if (!landmarks?.length) return;
 
-    context.strokeStyle = '#00ff19';
-    context.fillStyle = '#fff';
+    context.strokeStyle = HAND_BONE_COLOR;
+    context.fillStyle = HAND_BONE_COLOR;
     context.lineWidth = Math.max(2, canvas.width / 250);
     HAND_CONNECTIONS.forEach(([from, to]) => {
         context.beginPath();
@@ -100,6 +110,7 @@ function resetCandidate(message) {
     candidateLetter = null;
     candidateStartedAt = 0;
     progress(0);
+    showLetter(null);
     if (message) status(message);
 }
 
@@ -110,7 +121,7 @@ function resetTemporalState() {
 
 function updateCandidate(prediction, now) {
     if (!prediction?.letter) {
-        if (candidateLetter) resetCandidate('Show your hand more clearly.');
+        if (candidateLetter) resetCandidate('Show hand more clearly.');
         return;
     }
 
@@ -122,14 +133,14 @@ function updateCandidate(prediction, now) {
         candidateLetter = letter;
         candidateStartedAt = now;
         progress(0);
-        status(`${letter} candidate: hold to type.`);
+        status('Hold sign steady.');
         window.FinglyphCameraInput?.showCandidate(letter);
         return;
     }
 
     if (letter === lockedLetter) {
         progress(1);
-        status(`${letter} typed: release or change your hand to type again.`);
+        status('Change sign to continue.');
         return;
     }
 
@@ -138,7 +149,7 @@ function updateCandidate(prediction, now) {
     if (heldFor >= HOLD_DURATION_MS) {
         lockedLetter = letter;
         progress(1);
-        status(`${letter} typed.`);
+        status('Typed.');
         window.FinglyphCameraInput?.commitLetter(letter);
     }
 }
@@ -187,11 +198,11 @@ async function startRecognition(video) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         isRecognizing = true;
-        status('Show an A-Z hand sign and hold it to type.');
+        status('Show and hold a sign.');
         recognizeFrame(video);
     } catch (error) {
         console.error('Hand recognition failed:', error);
-        status('Camera is on, but hand recognition could not load.');
+        status('Recognition unavailable.');
     }
 }
 
