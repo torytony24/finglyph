@@ -24,11 +24,8 @@ let staging;
 let currentWords = [];
 
 const CARD_SIZE = {
-    maximum: 96,
-    minimum: 48,
-    decreasePerWord: 8,
+    glyph: 48,
     gap: 5,
-    horizontalPaddingRatio: 0.42,
     maxWidth: 760,
     viewportWidthRatio: 0.82,
 };
@@ -504,7 +501,25 @@ async function hydrateGlyph(
 
 // Kept public so non-editor screens can show the exact same sign-card preview.
 window.FinglyphGlyphMorph = {
-    renderWord(container, word, { animate = true, glyphSize = 56 } = {}) {
+    getWordCardMetrics(availableWidth) {
+        return calculateWordCardMetrics(availableWidth);
+    },
+
+    renderTransition(container, sourceCharacter, targetCharacter, { animate = true, delay = 0 } = {}) {
+        const source = String(sourceCharacter || '').toUpperCase();
+        const target = String(targetCharacter || '').toUpperCase();
+
+        if (!container || !staging || !/^[A-Z]$/.test(source) || !/^[A-Z]$/.test(target)) {
+            return false;
+        }
+
+        const record = createGlyphRecord(target, source);
+        container.replaceChildren(record.slot);
+        hydrateGlyph(record.slot, source, target, animate, delay);
+        return true;
+    },
+
+    renderWord(container, word, { animate = true, glyphSize = CARD_SIZE.glyph } = {}) {
         if (!container || !staging) return;
 
         const characters = [...filterWord(String(word || ''))];
@@ -513,6 +528,7 @@ window.FinglyphGlyphMorph = {
         wordContainer.setAttribute('role', 'img');
         wordContainer.setAttribute('aria-label', `${word} hand-sign card`);
         wordContainer.style.setProperty('--glyph-size', `${glyphSize}px`);
+        wordContainer.style.setProperty('--card-glyph-gap', `${CARD_SIZE.gap}px`);
 
         const records = characters.map((character, index) => {
             const sourceCharacter = index > 0 ? characters[index - 1] : FIST_LETTER;
@@ -563,32 +579,32 @@ function flattenWords(words) {
     return words.flatMap(word => [...word]);
 }
 
+function calculateWordCardMetrics(availableWidth) {
+    const maxCardWidth = Math.min(
+        CARD_SIZE.maxWidth,
+        Math.floor(availableWidth * CARD_SIZE.viewportWidthRatio),
+    );
+
+    return {
+        maxCardWidth,
+        glyphSize: CARD_SIZE.glyph,
+        gap: CARD_SIZE.gap,
+    };
+}
+
 function updateCardSizing(words) {
     const output = document.getElementById('output');
     if (!output || !words.length) return;
 
     const availableWidth = output.clientWidth;
-    const maxCardWidth = Math.min(
-        CARD_SIZE.maxWidth,
-        Math.floor(availableWidth * CARD_SIZE.viewportWidthRatio),
-    );
-    const sizeForWordCount = Math.max(
-        CARD_SIZE.minimum,
-        CARD_SIZE.maximum - (words.length - 1) * CARD_SIZE.decreasePerWord,
-    );
+    const metrics = calculateWordCardMetrics(availableWidth);
 
-    output.style.setProperty('--card-max-width', `${maxCardWidth}px`);
+    output.style.setProperty('--card-max-width', `${metrics.maxCardWidth}px`);
+    output.style.setProperty('--card-glyph-gap', `${metrics.gap}px`);
 
-    words.forEach((word, index) => {
-        const wordLength = [...word].length;
+    words.forEach((_, index) => {
         const wordContainer = output.children[index];
-        const sizeForWidth = (maxCardWidth - CARD_SIZE.gap * (wordLength - 1))
-            / (wordLength + CARD_SIZE.horizontalPaddingRatio);
-        const glyphSize = Math.max(
-            CARD_SIZE.minimum,
-            Math.min(sizeForWordCount, Math.floor(sizeForWidth)),
-        );
-        wordContainer?.style.setProperty('--glyph-size', `${glyphSize}px`);
+        wordContainer?.style.setProperty('--glyph-size', `${metrics.glyphSize}px`);
     });
 }
 

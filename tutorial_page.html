@@ -6,7 +6,7 @@
     <title>Finglyph</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400&amp;family=Poppins:wght@300;400;500;600&amp;display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="css/tutorial_page.css" />
     <link rel="stylesheet" href="css/mobile-unsupported.css" />
 </head>
@@ -33,9 +33,13 @@
         </section>
 
         <section id="found-gestures" aria-label="Recognized hand gestures"></section>
+        <h1 class="tutorial-greeting" aria-hidden="true" aria-label="Hello, Finglyph!"><span class="tutorial-greeting__hello">Hello,</span><span class="tutorial-greeting__brand">Finglyph</span><span class="tutorial-greeting__mark">!</span></h1>
+        <p class="tutorial-tagline" aria-hidden="true">Create a delightful experience with Finglyph.</p>
         <button id="debug-recognize-next" class="debug-recognize-next" type="button">Debug: recognize next</button>
         <a class="skip-link" href="main_page.html">Skip<span aria-hidden="true">></span></a>
     </main>
+    <div id="morph-staging" aria-hidden="true"></div>
+    <script src="js/script.js"></script>
     <script type="module">
         if (!window.matchMedia('(max-width: 767px)').matches) {
             import('./js/tutorial-page.js');

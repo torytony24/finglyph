@@ -53,18 +53,18 @@ body {
     display: inline-flex;
     max-width: 100%;
     align-items: center;
-    gap: 5px;
+    gap: var(--card-glyph-gap, 5px);
     overflow: hidden;
-    padding: calc(var(--glyph-size, 56px) * 0.17) calc(var(--glyph-size, 56px) * 0.21);
+    padding: calc(var(--glyph-size, 48px) * 0.17) calc(var(--glyph-size, 48px) * 0.21);
     background: #00ff19;
 }
 
 .tutorial-morph-preview .glyph-slot {
     position: relative;
     display: block;
-    width: var(--glyph-size, 56px);
-    height: var(--glyph-size, 56px);
-    flex: 0 0 var(--glyph-size, 56px);
+    width: var(--glyph-size, 48px);
+    height: var(--glyph-size, 48px);
+    flex: 0 0 var(--glyph-size, 48px);
 }
 
 .tutorial-morph-preview .morph-glyph {
@@ -185,6 +185,6 @@ body {
     }
 
     .tutorial-morph-preview .word-container {
-        --glyph-size: clamp(40px, 11vw, 56px) !important;
+        --glyph-size: 48px !important;
     }
 }

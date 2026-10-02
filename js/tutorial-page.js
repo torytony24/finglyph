@@ -1,4 +1,3 @@
-import { FilesetResolver, HandLandmarker } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/+esm';
 import { classifyLandmarks, loadClassifier } from './landmark-classifier.js';
 import { resolveInferenceConfig } from './asl-inference-config.js';
 import { LandmarkTemporalFilter, ProbabilityTemporalStabilizer } from './temporal-stabilization.js';
@@ -8,15 +7,27 @@ import { createRawPredictionDebugOverlay } from './debug-prediction-overlay.js';
 const config = resolveInferenceConfig(window.FinglyphAslConfig);
 const MODEL_URL = config.model.classifierPath;
 const LANDMARKER_URL = config.model.handLandmarkerPath;
+const MEDIAPIPE_MODULE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${config.model.mediaPipeVersion}/+esm`;
 const WASM_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${config.model.mediaPipeVersion}/wasm`;
 // Change this list to change both the recognition order and the final arrangement.
-const TARGETS = ['A', 'B', 'C', 'D', 'F'];
+const TARGETS = ['H','E','L','L','O'];
+const FINAL_WORD = 'FINGLYPH';
 const HOLD_MS = config.temporal.debounceMs;
+const RELEASE_DELAY_MS = config.temporal.releaseDelayMs;
 const CARD_ENTRANCE_MS = 420;
 const FINAL_CARD_FLOAT_MS = 1000;
 const FINAL_CARD_SETTLE_DELAY_MS = CARD_ENTRANCE_MS + FINAL_CARD_FLOAT_MS;
 const FINAL_LAYOUT_MS = 1300;
+const FINAL_WORD_START_DELAY_MS = FINAL_LAYOUT_MS + 100;
+const FINAL_WORD_LETTER_INTERVAL_MS = 700;
+const WORD_CARD_START_DELAY_MS = 900;
+const WORD_CARD_MORPH_MS = 1100;
+const GREETING_REVEAL_MS = 600;
+const GREETING_HOLD_MS = 1100;
 const CONNECTIONS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];
+const HAND_BONE_COLOR = getComputedStyle(document.documentElement)
+    .getPropertyValue('--fill-color')
+    .trim() || '#f4f4f4';
 
 const el = {
     page: document.querySelector('.practice-page'),
@@ -26,11 +37,14 @@ const el = {
     image: document.getElementById('guide-image'), letter: document.getElementById('guide-letter'),
     progress: document.getElementById('hold-progress'),
     found: document.getElementById('found-gestures'),
+    greeting: document.querySelector('.tutorial-greeting'),
+    tagline: document.querySelector('.tutorial-tagline'),
     guide: document.querySelector('.gesture-guide'), skip: document.querySelector('.skip-link'),
     debugNext: document.getElementById('debug-recognize-next'),
 };
 let landmarker, classifier, stream, animationId, targetIndex = 0, candidate, candidateAt = 0, lastHandAt = 0, running = false, completed = false, completionPending = false;
 let layoutAnimations = [];
+let previousGestureLetter = 'A';
 const landmarkFilter = new LandmarkTemporalFilter(config.temporal);
 const probabilityStabilizer = new ProbabilityTemporalStabilizer(config.temporal);
 let confidencePolicy = config.confidence;
@@ -43,15 +57,26 @@ const progress = value => { el.progress.style.width = `${Math.max(0, Math.min(1,
 function reset(message) { candidate = null; candidateAt = 0; progress(0); if (message) status(message); }
 function resetTemporalState() { landmarkFilter.reset(); probabilityStabilizer.reset(); }
 
-function predict(landmarks) {
-    return classifyLandmarks(landmarks, classifier);
-}
-
 function draw(landmarks) {
-    const ctx = el.canvas.getContext('2d'); ctx.clearRect(0, 0, el.canvas.width, el.canvas.height); if (!landmarks) return;
-    ctx.strokeStyle = '#2fbf70'; ctx.fillStyle = '#fff'; ctx.lineWidth = Math.max(2, el.canvas.width / 260);
-    CONNECTIONS.forEach(([from, to]) => { ctx.beginPath(); ctx.moveTo(landmarks[from].x * el.canvas.width, landmarks[from].y * el.canvas.height); ctx.lineTo(landmarks[to].x * el.canvas.width, landmarks[to].y * el.canvas.height); ctx.stroke(); });
-    landmarks.forEach(point => { ctx.beginPath(); ctx.arc(point.x * el.canvas.width, point.y * el.canvas.height, ctx.lineWidth, 0, Math.PI * 2); ctx.fill(); });
+    const canvas = el.canvas;
+    const context = canvas.getContext('2d');
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    if (!landmarks?.length) return;
+
+    context.strokeStyle = HAND_BONE_COLOR;
+    context.fillStyle = HAND_BONE_COLOR;
+    context.lineWidth = Math.max(2, canvas.width / 250);
+    CONNECTIONS.forEach(([from, to]) => {
+        context.beginPath();
+        context.moveTo(landmarks[from].x * canvas.width, landmarks[from].y * canvas.height);
+        context.lineTo(landmarks[to].x * canvas.width, landmarks[to].y * canvas.height);
+        context.stroke();
+    });
+    landmarks.forEach(point => {
+        context.beginPath();
+        context.arc(point.x * canvas.width, point.y * canvas.height, context.lineWidth, 0, Math.PI * 2);
+        context.fill();
+    });
 }
 
 function updateGuide() {
@@ -75,37 +100,188 @@ function positionCard(card, position) {
     card.style.top = `${position.y * 100}%`;
 }
 
-function addGesture(letter) {
-    const card = document.createElement('div'); card.className = 'gesture-card';
-    const content = document.createElement('div'); content.className = 'gesture-card__content';
-    const image = document.createElement('img'); image.src = `assets/signs/${letter}.svg`; image.alt = `${letter} hand sign`;
-    const label = document.createElement('span'); label.textContent = letter; content.append(image, label); card.append(content); el.found.append(card);
-    positionCard(card, floatingPosition(targetIndex, TARGETS.length));
+function finalCardPosition(row, column) {
+    const availableWidth = Math.max(0, el.page.clientWidth - 72);
+    const gap = 12;
+    // Fit the eight-sign row once so every individual glyph stays the same size
+    // through floating, alignment, and reveal; word-card morphing handles the shrink.
+    const cardSize = Math.max(
+        48,
+        Math.floor(Math.min(
+            205,
+            (availableWidth - gap * (FINAL_WORD.length - 1)) / FINAL_WORD.length,
+        )),
+    );
+    const rowGap = Math.min(24, Math.max(12, window.innerHeight * 0.022));
 
-    // Start floating only after the card's entrance animation has completed.
-    window.setTimeout(() => card.classList.add('is-floating'), CARD_ENTRANCE_MS);
+    return {
+        left: 36 + column * (cardSize + gap),
+        top: 24 + row * (cardSize + rowGap),
+        cardSize,
+    };
+}
+
+function addGesture(letter, { row = 0, column = targetIndex, settle = false } = {}) {
+    const card = document.createElement('div'); card.className = 'gesture-card';
+    card.setAttribute('role', 'img'); card.setAttribute('aria-label', `${letter} hand sign`);
+    card.dataset.layoutRow = String(row);
+    card.dataset.layoutColumn = String(column);
+    const content = document.createElement('div'); content.className = 'gesture-card__content';
+    const glyph = document.createElement('span'); glyph.className = 'gesture-card__glyph'; glyph.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span'); label.textContent = letter;
+    content.append(glyph, label); card.append(content); el.found.append(card);
+    const position = finalCardPosition(row, column);
+    card.style.setProperty('--gesture-size', `${position.cardSize}px`);
+    window.FinglyphGlyphMorph?.renderTransition(glyph, previousGestureLetter, letter);
+    previousGestureLetter = letter;
+    if (settle) {
+        card.style.setProperty('--settled-size', `${position.cardSize}px`);
+        card.classList.add('is-settling');
+        card.style.left = `${position.left}px`;
+        card.style.top = `${position.top}px`;
+    } else {
+        positionCard(card, floatingPosition(targetIndex, TARGETS.length));
+        window.setTimeout(() => card.classList.add('is-floating'), CARD_ENTRANCE_MS);
+    }
+
+    return card;
+}
+
+function revealFinalWord(index = 0) {
+    if (!completed || index >= FINAL_WORD.length) return;
+    addGesture(FINAL_WORD[index], { row: 1, column: index, settle: true });
+    if (index + 1 < FINAL_WORD.length) {
+        window.setTimeout(() => revealFinalWord(index + 1), FINAL_WORD_LETTER_INTERVAL_MS);
+    } else {
+        waitForSignMorphs();
+    }
+}
+
+function waitForSignMorphs() {
+    if (el.found.querySelector('.gesture-card .glyph-slot.is-morphing')) {
+        window.setTimeout(waitForSignMorphs, 100);
+        return;
+    }
+    window.setTimeout(morphRowsIntoWordCards, WORD_CARD_START_DELAY_MS);
+}
+
+function setWordCardLayout(card) {
+    const metrics = window.FinglyphGlyphMorph?.getWordCardMetrics(
+        el.page.clientWidth - 72,
+    );
+    if (!metrics) return;
+
+    card.style.setProperty('--glyph-size', `${metrics.glyphSize}px`);
+    card.style.setProperty('--card-glyph-gap', `${metrics.gap}px`);
+    card.style.setProperty('--card-max-width', `${metrics.maxCardWidth}px`);
+}
+
+function collectWordRow(word, row) {
+    const cards = [...el.found.querySelectorAll(`.gesture-card[data-layout-row="${row}"]`)]
+        .sort((first, second) => Number(first.dataset.layoutColumn) - Number(second.dataset.layoutColumn));
+    if (cards.length !== [...word].length) return null;
+
+    const glyphs = cards.map(card => card.querySelector('.gesture-card__glyph > .glyph-slot'));
+    if (glyphs.some(glyph => !glyph)) return null;
+
+    return { word, row, cards, glyphs, sourcePositions: glyphs.map(glyph => glyph.getBoundingClientRect()) };
+}
+
+function transitionToBrand() {
+    const hello = el.greeting.querySelector('.tutorial-greeting__hello');
+    const mark = el.greeting.querySelector('.tutorial-greeting__mark');
+    // Freeze each disappearing span at its rendered width so collapsing it
+    // moves the remaining word smoothly into the exact center.
+    hello.style.width = `${hello.getBoundingClientRect().width}px`;
+    mark.style.width = `${mark.getBoundingClientRect().width}px`;
+    void el.greeting.offsetWidth;
+    hello.setAttribute('aria-hidden', 'true');
+    mark.setAttribute('aria-hidden', 'true');
+    el.greeting.setAttribute('aria-label', 'Finglyph');
+    el.greeting.classList.add('is-brand-only');
+    el.tagline.removeAttribute('aria-hidden');
+    el.tagline.classList.add('is-visible');
+}
+
+function morphRowsIntoWordCards() {
+    // Measure both rows before changing the layout, then move every glyph in
+    // one frame so neither row jumps ahead of the other.
+    const rows = [collectWordRow(TARGETS.join(''), 0), collectWordRow(FINAL_WORD, 1)];
+    if (rows.some(row => !row)) return;
+
+    el.found.classList.add('is-word-output');
+    let completedCards = 0;
+
+    rows.forEach(row => {
+        const wordCard = document.createElement('div');
+        wordCard.className = 'word-container tutorial-word-card is-morphing';
+        wordCard.dataset.layoutRow = String(row.row);
+        wordCard.dataset.word = row.word;
+        wordCard.setAttribute('role', 'img');
+        wordCard.setAttribute('aria-label', `${row.word.toLowerCase()} hand-sign card`);
+        setWordCardLayout(wordCard);
+
+        const background = document.createElement('div');
+        background.className = 'tutorial-word-card__background';
+        background.setAttribute('aria-hidden', 'true');
+        wordCard.append(background, ...row.glyphs);
+        el.found.append(wordCard);
+        row.cards.forEach(card => card.remove());
+
+        row.glyphs.forEach((glyph, index) => {
+            const from = row.sourcePositions[index];
+            const to = glyph.getBoundingClientRect();
+            const animation = glyph.animate([
+                {
+                    transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width}, ${from.height / to.height})`,
+                    transformOrigin: 'top left',
+                },
+                { transform: 'none', transformOrigin: 'top left' },
+            ], { duration: WORD_CARD_MORPH_MS, easing: 'cubic-bezier(.45,0,.25,1)', fill: 'both' });
+            animation.onfinish = () => animation.cancel();
+        });
+
+        const backgroundAnimation = background.animate([
+            { transform: 'scaleX(0)', opacity: 0, offset: 0 },
+            { transform: 'scaleX(0)', opacity: 0, offset: 0.42 },
+            { transform: 'scaleX(1)', opacity: 1, offset: 1 },
+        ], { duration: WORD_CARD_MORPH_MS, easing: 'cubic-bezier(.45,0,.25,1)', fill: 'both' });
+        backgroundAnimation.onfinish = () => {
+            background.style.transform = 'scaleX(1)';
+            background.style.opacity = '1';
+            wordCard.classList.remove('is-morphing');
+            backgroundAnimation.cancel();
+            completedCards += 1;
+            if (completedCards === rows.length) {
+                el.greeting.removeAttribute('aria-hidden');
+                el.greeting.classList.add('is-visible');
+                window.setTimeout(transitionToBrand, GREETING_REVEAL_MS + GREETING_HOLD_MS);
+            }
+        };
+    });
 }
 
 function finalLayout() {
     const cards = [...el.found.querySelectorAll('.gesture-card')];
-    if (!cards.length) return;
+    const wordCards = [...el.found.querySelectorAll('.tutorial-word-card')];
+    if (!cards.length && !wordCards.length) return;
 
     layoutAnimations.forEach(animation => animation.cancel());
     layoutAnimations = [];
-    const padding = Math.max(24, window.innerWidth * 0.07);
-    const cardSize = Math.round(Math.min(130, Math.max(48, window.innerWidth * 0.11)));
-    const gap = Math.round(Math.min(26, Math.max(12, window.innerWidth * 0.025)));
-    const columns = Math.min(cards.length, Math.max(1, Math.floor((window.innerWidth - padding * 2 + gap) / (cardSize + gap))));
-    const startX = padding;
-    const startY = padding;
+    wordCards.forEach(setWordCardLayout);
+    if (!cards.length) return;
+
     const duration = FINAL_LAYOUT_MS;
 
-    cards.forEach((card, index) => {
-        const row = Math.floor(index / columns);
-        const column = index % columns;
+    cards.forEach(card => {
+        const row = Number(card.dataset.layoutRow) || 0;
+        const column = Number(card.dataset.layoutColumn) || 0;
+        const position = finalCardPosition(row, column);
         const from = { left: card.offsetLeft, top: card.offsetTop };
-        const to = { left: startX + column * (cardSize + gap), top: startY + row * (cardSize + gap) };
-        card.style.setProperty('--settled-size', `${cardSize}px`);
+        const to = { left: position.left, top: position.top };
+        card.style.setProperty('--gesture-size', `${position.cardSize}px`);
+        card.style.setProperty('--settled-size', `${position.cardSize}px`);
+        card.classList.add('is-settling');
         card.style.left = `${to.left}px`;
         card.style.top = `${to.top}px`;
 
@@ -144,6 +320,9 @@ function beginCompletion() {
     completionPending = true;
     el.debugNext.disabled = true;
     el.debugNext.textContent = 'Debug: complete';
+}
+
+function hideCameraForCompletion() {
     el.camera.setAttribute('aria-hidden', 'true');
     el.guide.setAttribute('aria-hidden', 'true');
     el.page.classList.add('is-complete');
@@ -154,8 +333,10 @@ function completePractice() {
     if (completed) return;
     completed = true;
     beginCompletion();
+    hideCameraForCompletion();
     [...el.found.querySelectorAll('.gesture-card')].forEach(stopFloating);
     requestAnimationFrame(finalLayout);
+    window.setTimeout(revealFinalWord, FINAL_WORD_START_DELAY_MS);
 }
 
 function accept() {
@@ -165,8 +346,8 @@ function accept() {
     else {
         status('Nice work.');
         beginCompletion();
-        // The final card completes its entrance, then floats for one full
-        // second before joining the final arrangement in either input mode.
+        // Keep the camera visible while the final card enters and floats for
+        // one full second, then hide it as the cards move into their final layout.
         window.setTimeout(completePractice, FINAL_CARD_SETTLE_DELAY_MS);
     }
 }
@@ -182,6 +363,7 @@ function handlePrediction(result, now) {
 
 function frame() {
     if (!running) return;
+    if (completionPending) { animationId = requestAnimationFrame(frame); return; }
     const now = performance.now();
     if (el.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
         const rawLandmarks = landmarker.detectForVideo(el.video, now).landmarks?.[0];
@@ -189,7 +371,7 @@ function frame() {
             lastHandAt = now;
             const filteredLandmarks = landmarkFilter.update(rawLandmarks, now);
             draw(filteredLandmarks);
-            const rawPrediction = predict(filteredLandmarks);
+            const rawPrediction = classifyLandmarks(filteredLandmarks, classifier);
             rawDebug.update(rawPrediction);
             const calibratedPrediction = applyURAmbiguityRule(
                 applyTemperature(rawPrediction, temperature),
@@ -200,7 +382,7 @@ function frame() {
             if (stabilizedPrediction && calibratedPrediction) stabilizedPrediction.energy = calibratedPrediction.energy;
             const decision = evaluateConfidencePolicy(stabilizedPrediction, confidencePolicy);
             handlePrediction(decision.accepted ? stabilizedPrediction : null, now);
-        } else if (now - lastHandAt > config.temporal.releaseDelayMs) {
+        } else if (now - lastHandAt >= RELEASE_DELAY_MS) {
             draw(null);
             rawDebug.clear();
             reset('Show your hand in the frame.');
@@ -213,7 +395,18 @@ function frame() {
 async function startCamera() {
     if (running || completed || completionPending) return; el.retry.hidden = true; status('Preparing the camera...');
     try {
-        if (!landmarker) { const vision = await FilesetResolver.forVisionTasks(WASM_URL); landmarker = await HandLandmarker.createFromOptions(vision, { baseOptions: { modelAssetPath: LANDMARKER_URL, delegate: config.model.delegate }, runningMode: 'VIDEO', numHands: config.model.numHands, minHandDetectionConfidence: config.model.minHandDetectionConfidence, minHandPresenceConfidence: config.model.minHandPresenceConfidence, minTrackingConfidence: config.model.minTrackingConfidence }); }
+        if (!landmarker) {
+            const { FilesetResolver, HandLandmarker } = await import(MEDIAPIPE_MODULE);
+            const vision = await FilesetResolver.forVisionTasks(WASM_URL);
+            landmarker = await HandLandmarker.createFromOptions(vision, {
+                baseOptions: { modelAssetPath: LANDMARKER_URL, delegate: config.model.delegate },
+                runningMode: 'VIDEO',
+                numHands: config.model.numHands,
+                minHandDetectionConfidence: config.model.minHandDetectionConfidence,
+                minHandPresenceConfidence: config.model.minHandPresenceConfidence,
+                minTrackingConfidence: config.model.minTrackingConfidence,
+            });
+        }
         if (!classifier) {
             const [model, artifacts] = await Promise.all([loadClassifier(MODEL_URL), loadConfidenceArtifacts(config.confidence, config.confidence)]);
             classifier = model; temperature = artifacts.temperature; confidencePolicy = artifacts.policy;

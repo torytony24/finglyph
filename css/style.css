@@ -10,6 +10,8 @@
     --element-color: #e9fea3;
     --ink-color: #1f1f1f;
     --fill-color: #f4f4f4;
+    --main-header-height: 127px;
+    --main-content-top-padding: 24px;
 }
 
 body {
@@ -43,6 +45,7 @@ select {
 
 .top-fixed {
     flex-shrink: 0;
+    height: var(--main-header-height);
     padding: 24px 36px;
     background: var(--primary-color);
     display: flex;           
@@ -51,7 +54,8 @@ select {
 }
 
 h1 {
-    font-size: 36px;          
+    font-size: 66px;
+    line-height: 79px;
     font-weight: 500;            
     color: var(--ink-color); 
     margin: 0;      
@@ -95,7 +99,7 @@ h1 {
 .main-scrollable {
     flex: 1;
     overflow: auto;
-    padding: 24px 36px;
+    padding: var(--main-content-top-padding) 36px;
     scrollbar-width: none;
     display: flex;
     flex-direction: column;
@@ -114,7 +118,7 @@ h1 {
     min-height: 100%;
     flex-direction: column;
     align-items: flex-start;
-    justify-content: center;
+    justify-content: flex-start;
     gap: clamp(12px, 2.2vh, 24px);
 }
 
@@ -123,7 +127,7 @@ h1 {
     flex: 0 0 auto;
     max-width: min(100%, var(--card-max-width, 760px));
     align-items: center;
-    gap: 5px;
+    gap: var(--card-glyph-gap, 5px);
     overflow-x: auto;
     padding: calc(var(--glyph-size, 48px) * 0.17) calc(var(--glyph-size, 48px) * 0.21);
     background: var(--bg-color);
