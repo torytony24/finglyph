@@ -1,4 +1,4 @@
-const DEFAULT_WORDS = ['finglyph'];
+const DEFAULT_WORDS = ['hello', 'finglyph'];
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const SIGNS_PATH = 'assets/signs';
@@ -749,13 +749,13 @@ window.addEventListener('DOMContentLoaded', () => {
 // ===== Automatically resize the input field =====
 const textInput = document.getElementById('textInput');
 
-function resizeInput() {
+function resizeInputToContent(input) {
     const minWidth = 150;
     const maxWidth = 500;
     const padding = 32; 
     
     const temp = document.createElement('span');
-    const style = getComputedStyle(textInput);
+    const style = getComputedStyle(input);
     
     temp.style.cssText = `
         font-size: ${style.fontSize};
@@ -769,7 +769,7 @@ function resizeInput() {
     `;
     
     // Measure the placeholder when the input is empty.
-    temp.textContent = textInput.value || textInput.placeholder;
+    temp.textContent = input.value || input.placeholder;
     document.body.appendChild(temp);
     
     let newWidth = temp.offsetWidth + padding;
@@ -777,7 +777,13 @@ function resizeInput() {
     
     // Keep the width within the minimum and maximum limits.
     newWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-    textInput.style.width = newWidth + 'px';
+    input.style.width = newWidth + 'px';
+}
+
+window.FinglyphResizeInputToContent = resizeInputToContent;
+
+function resizeInput() {
+    resizeInputToContent(textInput);
 }
 
 // Resize whenever the value changes.

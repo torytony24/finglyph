@@ -24,6 +24,11 @@ const WORD_CARD_START_DELAY_MS = 900;
 const WORD_CARD_MORPH_MS = 1100;
 const GREETING_REVEAL_MS = 600;
 const GREETING_HOLD_MS = 1100;
+const BRAND_COLLAPSE_MS = 900;
+const BRAND_HOLD_MS = 900;
+const MAIN_PREVIEW_TRANSITION_MS = 1150;
+const MAIN_PREVIEW_HOLD_MS = 1000;
+const FINAL_BLUR_MS = 900;
 const CONNECTIONS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];
 const HAND_BONE_COLOR = getComputedStyle(document.documentElement)
     .getPropertyValue('--fill-color')
@@ -39,12 +44,16 @@ const el = {
     found: document.getElementById('found-gestures'),
     greeting: document.querySelector('.tutorial-greeting'),
     tagline: document.querySelector('.tutorial-tagline'),
+    start: document.querySelector('.tutorial-finale-start'),
+    footerPreview: document.querySelector('.tutorial-footer-preview'),
+    inputPreview: document.querySelector('.tutorial-input-preview'),
     guide: document.querySelector('.gesture-guide'), skip: document.querySelector('.skip-link'),
     debugNext: document.getElementById('debug-recognize-next'),
 };
 let landmarker, classifier, stream, animationId, targetIndex = 0, candidate, candidateAt = 0, lastHandAt = 0, running = false, completed = false, completionPending = false;
 let layoutAnimations = [];
 let previousGestureLetter = 'A';
+let finalWordSequenceSkipped = false;
 const landmarkFilter = new LandmarkTemporalFilter(config.temporal);
 const probabilityStabilizer = new ProbabilityTemporalStabilizer(config.temporal);
 let confidencePolicy = config.confidence;
@@ -56,6 +65,25 @@ const status = text => { el.status.textContent = text; };
 const progress = value => { el.progress.style.width = `${Math.max(0, Math.min(1, value)) * 100}%`; };
 function reset(message) { candidate = null; candidateAt = 0; progress(0); if (message) status(message); }
 function resetTemporalState() { landmarkFilter.reset(); probabilityStabilizer.reset(); }
+
+function updateDebugButton() {
+    const finalLetters = el.found.querySelectorAll('.gesture-card[data-layout-row="1"]').length;
+    const cards = el.found.querySelectorAll('.tutorial-word-card');
+    let label;
+    if (!completionPending) label = `Debug: recognize ${target()}`;
+    else if (!completed) label = 'Debug: arrange HELLO';
+    else if (!el.found.classList.contains('is-word-output') && finalLetters < FINAL_WORD.length) label = 'Debug: finish FINGLYPH';
+    else if (!el.found.classList.contains('is-word-output')) label = 'Debug: show cards';
+    else if ([...cards].some(card => card.classList.contains('is-morphing'))) label = 'Debug: finish cards';
+    else if (!el.greeting.classList.contains('is-visible')) label = 'Debug: show greeting';
+    else if (!el.greeting.classList.contains('is-brand-only')) label = 'Debug: center Finglyph';
+    else if (!el.page.classList.contains('is-main-preview')) label = 'Debug: main preview';
+    else if (!el.page.classList.contains('is-finale')) label = 'Debug: finale';
+    else if (!el.page.classList.contains('is-finale-copy-visible')) label = 'Debug: show message';
+    else label = 'Debug: complete';
+    el.debugNext.textContent = label;
+    el.debugNext.disabled = label === 'Debug: complete';
+}
 
 function draw(landmarks) {
     const canvas = el.canvas;
@@ -84,12 +112,37 @@ function updateGuide() {
     el.letter.textContent = target(); el.image.src = `assets/signs/${target()}.svg`;
 }
 
-function floatingPosition(index, count) {
+function floatingPosition(index, count, card) {
+    const page = el.page.getBoundingClientRect();
+    const camera = el.camera.getBoundingClientRect();
+    const guide = el.guide.getBoundingClientRect();
+    const width = el.page.clientWidth;
+    const height = el.page.clientHeight;
+    const cardWidth = card.offsetWidth;
+    const cardHeight = card.offsetHeight;
+    const cameraLeft = camera.left - page.left;
+    const cameraRight = camera.right - page.left;
+    const sideOffset = Math.min(28, Math.max(0, (cameraLeft - cardWidth) / 4));
+    const leftSide = (cameraLeft - cardWidth) / 2;
+    const rightSide = cameraRight + (width - cameraRight - cardWidth) / 2;
+    const lowerTop = Math.min(height * 0.59, guide.top - page.top - cardHeight - 30);
+    const upperCenterTop = Math.max(24, camera.top - page.top - cardHeight - 24);
+    const stagger = Math.min(1, width / 1400);
+    // Keep each sign in its own clear area, but vary both axes to avoid a grid.
     const preset = [
-        { x: 0.13, y: 0.14 }, { x: 0.72, y: 0.13 }, { x: 0.12, y: 0.62 },
-        { x: 0.72, y: 0.62 }, { x: 0.76, y: 0.36 },
+        { left: leftSide - sideOffset - 8 * stagger, top: height * 0.17 },
+        { left: rightSide + sideOffset - 37 * stagger, top: height * 0.095 },
+        { left: leftSide + sideOffset + 45 * stagger, top: lowerTop - 36 * stagger },
+        { left: rightSide - sideOffset - 42 * stagger, top: lowerTop },
+        { left: (width - cardWidth) / 2 + 54 * stagger, top: upperCenterTop - 6 * stagger },
     ];
-    if (index < preset.length) return preset[index];
+    if (index < preset.length) {
+        const position = preset[index];
+        return {
+            x: Math.min(Math.max(position.left, 24), Math.max(24, width - cardWidth - 24)) / width,
+            y: Math.min(Math.max(position.top, 24), Math.max(24, height - cardHeight - 24)) / height,
+        };
+    }
 
     const angle = (-Math.PI / 2) + ((index - preset.length) / Math.max(1, count - preset.length)) * Math.PI * 2;
     return { x: 0.5 + Math.cos(angle) * 0.34, y: 0.5 + Math.sin(angle) * 0.31 };
@@ -140,7 +193,7 @@ function addGesture(letter, { row = 0, column = targetIndex, settle = false } = 
         card.style.left = `${position.left}px`;
         card.style.top = `${position.top}px`;
     } else {
-        positionCard(card, floatingPosition(targetIndex, TARGETS.length));
+        positionCard(card, floatingPosition(targetIndex, TARGETS.length, card));
         window.setTimeout(() => card.classList.add('is-floating'), CARD_ENTRANCE_MS);
     }
 
@@ -148,8 +201,11 @@ function addGesture(letter, { row = 0, column = targetIndex, settle = false } = 
 }
 
 function revealFinalWord(index = 0) {
-    if (!completed || index >= FINAL_WORD.length) return;
-    addGesture(FINAL_WORD[index], { row: 1, column: index, settle: true });
+    if (!completed || finalWordSequenceSkipped || el.found.classList.contains('is-word-output') || index >= FINAL_WORD.length) return;
+    if (!el.found.querySelector(`.gesture-card[data-layout-row="1"][data-layout-column="${index}"]`)) {
+        addGesture(FINAL_WORD[index], { row: 1, column: index, settle: true });
+    }
+    updateDebugButton();
     if (index + 1 < FINAL_WORD.length) {
         window.setTimeout(() => revealFinalWord(index + 1), FINAL_WORD_LETTER_INTERVAL_MS);
     } else {
@@ -158,6 +214,7 @@ function revealFinalWord(index = 0) {
 }
 
 function waitForSignMorphs() {
+    if (el.found.classList.contains('is-word-output')) return;
     if (el.found.querySelector('.gesture-card .glyph-slot.is-morphing')) {
         window.setTimeout(waitForSignMorphs, 100);
         return;
@@ -187,7 +244,39 @@ function collectWordRow(word, row) {
     return { word, row, cards, glyphs, sourcePositions: glyphs.map(glyph => glyph.getBoundingClientRect()) };
 }
 
-function transitionToBrand() {
+function updateHeaderShift() {
+    const brand = el.greeting.querySelector('.tutorial-greeting__brand');
+    brand.style.setProperty('--header-shift-x', `${36 - brand.offsetLeft}px`);
+    brand.style.setProperty('--header-shift-y', `${24 - brand.offsetTop}px`);
+}
+
+function revealFinaleCopy() {
+    if (!el.page.classList.contains('is-finale') || el.page.classList.contains('is-finale-copy-visible')) return;
+    el.page.classList.add('is-finale-copy-visible');
+    el.start.removeAttribute('aria-hidden');
+    el.start.removeAttribute('tabindex');
+    updateDebugButton();
+}
+
+function showFinale() {
+    if (!el.page.classList.contains('is-main-preview') || el.page.classList.contains('is-finale')) return;
+    el.page.classList.add('is-finale');
+    updateDebugButton();
+    window.setTimeout(revealFinaleCopy, FINAL_BLUR_MS);
+}
+
+function startMainPreview() {
+    if (el.page.classList.contains('is-main-preview')) return;
+    updateHeaderShift();
+    window.FinglyphResizeInputToContent?.(el.inputPreview);
+    el.page.classList.add('is-main-preview');
+    el.footerPreview.removeAttribute('aria-hidden');
+    updateDebugButton();
+    window.setTimeout(showFinale, MAIN_PREVIEW_TRANSITION_MS + MAIN_PREVIEW_HOLD_MS);
+}
+
+function transitionToBrand({ instant = false } = {}) {
+    if (el.greeting.classList.contains('is-brand-only')) return;
     const hello = el.greeting.querySelector('.tutorial-greeting__hello');
     const mark = el.greeting.querySelector('.tutorial-greeting__mark');
     // Freeze each disappearing span at its rendered width so collapsing it
@@ -195,15 +284,31 @@ function transitionToBrand() {
     hello.style.width = `${hello.getBoundingClientRect().width}px`;
     mark.style.width = `${mark.getBoundingClientRect().width}px`;
     void el.greeting.offsetWidth;
+    if (instant) {
+        hello.style.transition = 'none';
+        mark.style.transition = 'none';
+        el.greeting.style.transition = 'none';
+    }
     hello.setAttribute('aria-hidden', 'true');
     mark.setAttribute('aria-hidden', 'true');
     el.greeting.setAttribute('aria-label', 'Finglyph');
     el.greeting.classList.add('is-brand-only');
     el.tagline.removeAttribute('aria-hidden');
     el.tagline.classList.add('is-visible');
+    updateDebugButton();
+    window.setTimeout(startMainPreview, BRAND_COLLAPSE_MS + BRAND_HOLD_MS);
+}
+
+function showGreeting() {
+    if (el.greeting.classList.contains('is-visible')) return;
+    el.greeting.removeAttribute('aria-hidden');
+    el.greeting.classList.add('is-visible');
+    updateDebugButton();
+    window.setTimeout(transitionToBrand, GREETING_REVEAL_MS + GREETING_HOLD_MS);
 }
 
 function morphRowsIntoWordCards() {
+    if (el.found.classList.contains('is-word-output')) return;
     // Measure both rows before changing the layout, then move every glyph in
     // one frame so neither row jumps ahead of the other.
     const rows = [collectWordRow(TARGETS.join(''), 0), collectWordRow(FINAL_WORD, 1)];
@@ -252,13 +357,55 @@ function morphRowsIntoWordCards() {
             wordCard.classList.remove('is-morphing');
             backgroundAnimation.cancel();
             completedCards += 1;
-            if (completedCards === rows.length) {
-                el.greeting.removeAttribute('aria-hidden');
-                el.greeting.classList.add('is-visible');
-                window.setTimeout(transitionToBrand, GREETING_REVEAL_MS + GREETING_HOLD_MS);
-            }
+            if (completedCards === rows.length) showGreeting();
         };
     });
+    updateDebugButton();
+}
+
+function debugAdvance() {
+    if (!completionPending) { accept(); return; }
+    if (!completed) { completePractice(); return; }
+
+    const finalLetters = el.found.querySelectorAll('.gesture-card[data-layout-row="1"]').length;
+    if (!el.found.classList.contains('is-word-output') && finalLetters < FINAL_WORD.length) {
+        finalWordSequenceSkipped = true;
+        [...FINAL_WORD].forEach((letter, index) => {
+            if (!el.found.querySelector(`.gesture-card[data-layout-row="1"][data-layout-column="${index}"]`)) {
+                addGesture(letter, { row: 1, column: index, settle: true });
+            }
+        });
+        updateDebugButton();
+        waitForSignMorphs();
+        return;
+    }
+    if (!el.found.classList.contains('is-word-output')) { morphRowsIntoWordCards(); return; }
+
+    const cards = [...el.found.querySelectorAll('.tutorial-word-card')];
+    if (cards.some(card => card.classList.contains('is-morphing'))) {
+        cards.forEach(card => {
+            card.getAnimations({ subtree: true }).forEach(animation => animation.cancel());
+            const background = card.querySelector('.tutorial-word-card__background');
+            background.style.transform = 'scaleX(1)';
+            background.style.opacity = '1';
+            card.classList.remove('is-morphing');
+        });
+        showGreeting();
+        return;
+    }
+    if (!el.greeting.classList.contains('is-visible')) { showGreeting(); return; }
+    if (!el.greeting.classList.contains('is-brand-only')) { transitionToBrand({ instant: true }); return; }
+    if (!el.page.classList.contains('is-main-preview')) {
+        el.greeting.querySelectorAll('.tutorial-greeting__hello, .tutorial-greeting__mark').forEach(part => { part.style.transition = 'none'; });
+        el.greeting.style.transition = 'none';
+        void el.greeting.offsetWidth;
+        startMainPreview();
+    } else if (!el.page.classList.contains('is-finale')) {
+        showFinale();
+    } else if (!el.page.classList.contains('is-finale-copy-visible')) {
+        el.page.classList.add('is-finale-blur-complete');
+        revealFinaleCopy();
+    }
 }
 
 function finalLayout() {
@@ -299,6 +446,14 @@ function finalLayout() {
     });
 }
 
+function repositionFloatingCards() {
+    const size = finalCardPosition(0, 0).cardSize;
+    el.found.querySelectorAll('.gesture-card[data-layout-row="0"]').forEach(card => {
+        card.style.setProperty('--gesture-size', `${size}px`);
+        positionCard(card, floatingPosition(Number(card.dataset.layoutColumn), TARGETS.length, card));
+    });
+}
+
 function stopFloating(card) {
     const content = card.querySelector('.gesture-card__content');
     content.style.transform = getComputedStyle(content).transform;
@@ -318,8 +473,7 @@ function stopCamera() {
 function beginCompletion() {
     if (completionPending) return;
     completionPending = true;
-    el.debugNext.disabled = true;
-    el.debugNext.textContent = 'Debug: complete';
+    updateDebugButton();
 }
 
 function hideCameraForCompletion() {
@@ -337,6 +491,7 @@ function completePractice() {
     [...el.found.querySelectorAll('.gesture-card')].forEach(stopFloating);
     requestAnimationFrame(finalLayout);
     window.setTimeout(revealFinalWord, FINAL_WORD_START_DELAY_MS);
+    updateDebugButton();
 }
 
 function accept() {
@@ -350,6 +505,7 @@ function accept() {
         // one full second, then hide it as the cards move into their final layout.
         window.setTimeout(completePractice, FINAL_CARD_SETTLE_DELAY_MS);
     }
+    updateDebugButton();
 }
 
 function handlePrediction(result, now) {
@@ -422,8 +578,10 @@ async function startCamera() {
 }
 
 el.retry.addEventListener('click', startCamera);
-el.debugNext.addEventListener('click', accept);
-window.addEventListener('resize', () => { if (completed) finalLayout(); });
+el.debugNext.addEventListener('click', debugAdvance);
+el.start.addEventListener('click', () => { if (el.page.classList.contains('is-finale-copy-visible')) window.location.assign('main_page.html'); });
+window.addEventListener('resize', () => { if (completed) finalLayout(); else repositionFloatingCards(); if (el.page.classList.contains('is-main-preview')) updateHeaderShift(); });
 window.addEventListener('beforeunload', () => { running = false; cancelAnimationFrame(animationId); stream?.getTracks().forEach(track => track.stop()); });
 updateGuide();
+updateDebugButton();
 if (TARGETS.length) startCamera(); else completePractice();
