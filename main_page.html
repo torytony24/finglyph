@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="js/nav-menu.js" async></script>
     <title>Finglyph</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,12 +17,13 @@
     </div>
     <div class="container">
         <header class="top-fixed">
-            <h1>Finglyph</h1>
-            <div class="top-right-buttons">
-                <button class="nav-btn how-to-use" onclick="showHowToUse()">How to use</button>
-                <button class="nav-btn behind" onclick="window.location.href='behind_temp/Behind.html'">Behind</button>
-                <button class="nav-btn description" onclick="showDescription()">Description</button>
-            </div>
+            <h1><a class="brand-link" href="main_page.html">Finglyph</a></h1>
+            <nav class="top-right-buttons" aria-label="Main navigation">
+                <a class="nav-btn how-to-use" href="howtouse.html">How to use</a>
+                <a class="nav-btn behind" href="behind.html">Behind</a>
+                <a class="nav-btn description" href="description.html">Description</a>
+                <span class="nav-indicator" aria-hidden="true"></span>
+            </nav>
         </header>
 
         <main class="main-scrollable">

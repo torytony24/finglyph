@@ -24,7 +24,7 @@ body {
 }
 
 .tutorial-step--next {
-    width: min(560px, calc(100vw - 48px));
+    width: min(max(560px, 38vw), calc(100vw - 48px));
 }
 
 .tutorial-hand-image {
@@ -182,9 +182,5 @@ body {
 @media (max-width: 560px) {
     .tutorial-step--next {
         width: min(calc(100% - 32px), 560px);
-    }
-
-    .tutorial-morph-preview .word-container {
-        --glyph-size: 48px !important;
     }
 }

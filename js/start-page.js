@@ -6,6 +6,7 @@ const progressFill = document.querySelector('.tutorial-progress__fill');
 const introStep = document.querySelector('.tutorial-step--intro');
 const nextStep = document.querySelector('.tutorial-step--next');
 const practiceButton = document.querySelector('[data-go-to-practice]');
+const morphPreview = document.querySelector('[data-morph-preview]');
 
 let isAdvancing = false;
 
@@ -41,10 +42,17 @@ introStep.addEventListener('animationend', (event) => {
     introStep.hidden = true;
     nextStep.hidden = false;
     window.FinglyphGlyphMorph?.renderWord(
-        document.querySelector('[data-morph-preview]'),
+        morphPreview,
         'finglyph',
     );
     window.dispatchEvent(new Event('tutorial:step-complete'));
+});
+
+window.addEventListener('resize', () => {
+    window.FinglyphGlyphMorph?.sizeWordCard(
+        morphPreview.querySelector('.word-container'),
+        morphPreview.clientWidth,
+    );
 });
 
 practiceButton.addEventListener('click', () => {

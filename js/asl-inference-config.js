@@ -15,6 +15,10 @@ export const DEFAULT_ASL_INFERENCE_CONFIG = Object.freeze({
         minTrackingConfidence: 0.7,
     },
     camera: { facingMode: 'user', width: 1280, height: 720 },
+    sDepth: {
+        // Provisional boundary from one S/M/N recording per class; recheck across sessions.
+        minThumbDepthRatio: -0.03,
+    },
     temporal: {
         landmarkFilter: 'one-euro', // 'one-euro', 'ema', or 'none'
         oneEuroMinCutoff: 1.0,
@@ -31,11 +35,12 @@ export const DEFAULT_ASL_INFERENCE_CONFIG = Object.freeze({
         // J/Z remain static-sign inference only; no sequential recognizer is used.
         entryThresholdByClass: {
             C: 0.75,
+            E: 0.60,
             L: 0.60,
             J: 0.60,
             M: 0.50,
             N: 0.50,
-            O: 0.70,
+            O: 0.60,
             P: 0.45,
             R: 0.50,
             S: 0.50,
@@ -46,11 +51,12 @@ export const DEFAULT_ASL_INFERENCE_CONFIG = Object.freeze({
             Z: 0.70,
         },
         exitThresholdByClass: {
+            E: 0.50,
             L: 0.50,
             J: 0.50,
             M: 0.40,
             N: 0.40,
-            O: 0.60,
+            O: 0.50,
             P: 0.35,
             R: 0.40,
             S: 0.40,
@@ -68,11 +74,12 @@ export const DEFAULT_ASL_INFERENCE_CONFIG = Object.freeze({
         top2Margin: 0.10,
         perClassThresholds: {
             C: 0.75,
+            E: 0.60,
             L: 0.60,
             J: 0.60,
             M: 0.50,
             N: 0.50,
-            O: 0.70,
+            O: 0.60,
             P: 0.45,
             R: 0.50,
             S: 0.50,
@@ -84,6 +91,7 @@ export const DEFAULT_ASL_INFERENCE_CONFIG = Object.freeze({
         },
         // Higher within-group margins reject visually ambiguous static signs.
         confusionGroupMargins: [
+            { letters: ['A', 'E'], minMargin: 0.25 },
             { letters: ['M', 'N', 'S', 'T'], minMargin: 0.08 },
             { letters: ['U', 'V'], minMargin: 0.12 },
         ],
@@ -94,8 +102,6 @@ export const DEFAULT_ASL_INFERENCE_CONFIG = Object.freeze({
             S: 0.08,
             T: 0.08,
         },
-        // If R narrowly beats U, treat it as U for right-hand static signs.
-        uFromRAmbiguityMargin: 0.12,
         maxEnergy: null,
     },
 });
@@ -109,10 +115,12 @@ export function resolveInferenceConfig(overrides = {}) {
     const config = {
         model: mergeSection(DEFAULT_ASL_INFERENCE_CONFIG.model, overrides.model),
         camera: mergeSection(DEFAULT_ASL_INFERENCE_CONFIG.camera, overrides.camera),
+        sDepth: mergeSection(DEFAULT_ASL_INFERENCE_CONFIG.sDepth, overrides.sDepth),
         temporal: mergeSection(DEFAULT_ASL_INFERENCE_CONFIG.temporal, overrides.temporal),
         confidence: mergeSection(DEFAULT_ASL_INFERENCE_CONFIG.confidence, overrides.confidence),
     };
     const temporal = config.temporal;
+    if (!(config.sDepth.minThumbDepthRatio >= -1 && config.sDepth.minThumbDepthRatio <= 1)) throw new Error('Invalid S depth policy.');
     if (!['one-euro', 'ema', 'none'].includes(temporal.landmarkFilter)) throw new Error('Invalid landmarkFilter.');
     if (!(temporal.landmarkEmaAlpha > 0 && temporal.landmarkEmaAlpha <= 1)) throw new Error('landmarkEmaAlpha must be in (0, 1].');
     if (!(temporal.probabilityEmaAlpha > 0 && temporal.probabilityEmaAlpha <= 1)) throw new Error('probabilityEmaAlpha must be in (0, 1].');
@@ -131,6 +139,5 @@ export function resolveInferenceConfig(overrides = {}) {
         if (!/^[A-Z]$/.test(letter) || !(margin >= 0 && margin <= 1)) throw new Error(`Invalid class margin for ${letter}.`);
     }
     if ((config.confidence.confusionGroupMargins ?? []).some(group => !Array.isArray(group.letters) || !(group.minMargin >= 0 && group.minMargin <= 1))) throw new Error('Invalid confusion-group margin.');
-    if (!(config.confidence.uFromRAmbiguityMargin >= 0 && config.confidence.uFromRAmbiguityMargin <= 1)) throw new Error('Invalid U/R ambiguity margin.');
     return config;
 }

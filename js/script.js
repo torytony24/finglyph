@@ -24,9 +24,10 @@ let staging;
 let currentWords = [];
 
 const CARD_SIZE = {
-    glyph: 48,
     gap: 5,
-    maxWidth: 760,
+    referenceGlyphCount: 5,
+    referenceCardWidthRatio: 0.226,
+    horizontalPaddingRatio: 0.21,
     viewportWidthRatio: 0.82,
 };
 
@@ -52,6 +53,37 @@ function signUrl(character) {
     return `${SIGNS_PATH}/${encodeURIComponent(character.toUpperCase())}.svg`;
 }
 
+function prepareSvgTemplate(svg) {
+    if (svg.querySelector('[data-role="outer"]')) return;
+
+    // Illustrator exports contain ordinary SVG shapes instead of the older
+    // data-role markers. Use their largest filled shape as the morph contour.
+    const shapes = [...svg.querySelectorAll('path, polygon, polyline')]
+        .filter(shape => !shape.closest('defs'));
+    const largest = shapes.reduce((best, shape) => {
+        if (getComputedStyle(shape).fill === 'none') return best;
+        const box = shape.getBBox();
+        const area = box.width * box.height;
+        return area > best.area ? { shape, area } : best;
+    }, { shape: null, area: 0 }).shape;
+    if (!largest) throw new Error('The hand-sign SVG has no filled shape to morph.');
+
+    let outer = largest;
+    if (outer.localName !== 'path') {
+        const points = Array.from(outer.points, point => `${point.x} ${point.y}`);
+        if (points.length < 3) throw new Error('The hand-sign SVG has an invalid outer polygon.');
+        const path = document.createElementNS(SVG_NS, 'path');
+        for (const attribute of outer.attributes) {
+            if (attribute.name !== 'points') path.setAttribute(attribute.name, attribute.value);
+        }
+        path.setAttribute('d', `M ${points.join(' L ')} Z`);
+        outer.replaceWith(path);
+        outer = path;
+    }
+    outer.setAttribute('data-role', 'outer');
+    svg.dataset.plainSignAsset = 'true';
+}
+
 async function loadSvgTemplate(character) {
     const cacheKey = character.toUpperCase();
 
@@ -74,6 +106,7 @@ async function loadSvgTemplate(character) {
             const svg = document.importNode(parsed.documentElement, true);
             svg.setAttribute('aria-hidden', 'true');
             staging.appendChild(svg);
+            prepareSvgTemplate(svg);
             return svg;
         })().catch(error => {
             templateCache.delete(cacheKey);
@@ -100,6 +133,7 @@ function readViewBox(svg) {
     const [x, y, width, height] = values;
     return {
         value: `${x} ${y} ${width} ${height}`,
+        x, y, width, height,
     };
 }
 
@@ -213,10 +247,15 @@ async function prepareMorphGeometry(sourceCharacter, targetCharacter) {
             return {
                 sourceSvg,
                 targetSvg,
+                sourceUrl: signUrl(sourceKey),
+                targetUrl: signUrl(targetKey),
+                sourcePlain: sourceSvg.dataset.plainSignAsset === 'true',
+                targetPlain: targetSvg.dataset.plainSignAsset === 'true',
+                sourceViewBox: readViewBox(sourceSvg),
                 targetViewBox: readViewBox(targetSvg),
                 sourcePoints,
                 targetPoints: alignContours(sourcePoints, sampledTarget),
-                fill: sourceOuter.getAttribute('fill') || '#e9fea3',
+                fill: sourceOuter.getAttribute('fill') || getComputedStyle(sourceOuter).fill || '#e9fea3',
             };
         })().catch(error => {
             geometryCache.delete(transitionKey);
@@ -319,6 +358,18 @@ function renderDetails(details, amount) {
     });
 }
 
+function createSvgSnapshot(url, viewBox, outputSvg) {
+    const image = document.createElementNS(SVG_NS, 'image');
+    image.setAttribute('href', url);
+    image.setAttribute('x', viewBox.x);
+    image.setAttribute('y', viewBox.y);
+    image.setAttribute('width', viewBox.width);
+    image.setAttribute('height', viewBox.height);
+    image.setAttribute('pointer-events', 'none');
+    outputSvg.appendChild(image);
+    return image;
+}
+
 function createMorphState(geometry, character, slot) {
     const outputSvg = document.createElementNS(SVG_NS, 'svg');
     outputSvg.classList.add('morph-glyph');
@@ -347,6 +398,12 @@ function createMorphState(geometry, character, slot) {
         defs,
         'target',
     );
+    const sourceSnapshot = geometry.sourcePlain
+        ? createSvgSnapshot(geometry.sourceUrl, geometry.sourceViewBox, outputSvg)
+        : null;
+    const targetSnapshot = geometry.targetPlain
+        ? createSvgSnapshot(geometry.targetUrl, geometry.targetViewBox, outputSvg)
+        : null;
 
     return {
         sourcePoints: geometry.sourcePoints,
@@ -354,6 +411,8 @@ function createMorphState(geometry, character, slot) {
         outerOutput,
         sourceDetails,
         targetDetails,
+        sourceSnapshot,
+        targetSnapshot,
     };
 }
 
@@ -366,6 +425,8 @@ function renderFrame(state, frameIndex) {
     state.outerOutput.setAttribute('d', pointsToPath(points));
     renderDetails(state.sourceDetails, detailSourceAmount(time));
     renderDetails(state.targetDetails, detailTargetAmount(time));
+    if (state.sourceSnapshot) state.sourceSnapshot.setAttribute('opacity', detailSourceAmount(time));
+    if (state.targetSnapshot) state.targetSnapshot.setAttribute('opacity', detailTargetAmount(time));
 }
 
 function clearSlotTimer(slot) {
@@ -505,6 +566,10 @@ window.FinglyphGlyphMorph = {
         return calculateWordCardMetrics(availableWidth);
     },
 
+    sizeWordCard(card, availableWidth) {
+        return applyWordCardMetrics(card, availableWidth);
+    },
+
     renderTransition(container, sourceCharacter, targetCharacter, { animate = true, delay = 0 } = {}) {
         const source = String(sourceCharacter || '').toUpperCase();
         const target = String(targetCharacter || '').toUpperCase();
@@ -519,7 +584,7 @@ window.FinglyphGlyphMorph = {
         return true;
     },
 
-    renderWord(container, word, { animate = true, glyphSize = CARD_SIZE.glyph } = {}) {
+    renderWord(container, word, { animate = true, glyphSize } = {}) {
         if (!container || !staging) return;
 
         const characters = [...filterWord(String(word || ''))];
@@ -527,8 +592,8 @@ window.FinglyphGlyphMorph = {
         wordContainer.className = 'word-container';
         wordContainer.setAttribute('role', 'img');
         wordContainer.setAttribute('aria-label', `${word} hand-sign card`);
-        wordContainer.style.setProperty('--glyph-size', `${glyphSize}px`);
-        wordContainer.style.setProperty('--card-glyph-gap', `${CARD_SIZE.gap}px`);
+        applyWordCardMetrics(wordContainer, container.clientWidth);
+        if (glyphSize != null) wordContainer.style.setProperty('--glyph-size', `${glyphSize}px`);
 
         const records = characters.map((character, index) => {
             const sourceCharacter = index > 0 ? characters[index - 1] : FIST_LETTER;
@@ -580,16 +645,31 @@ function flattenWords(words) {
 }
 
 function calculateWordCardMetrics(availableWidth) {
-    const maxCardWidth = Math.min(
-        CARD_SIZE.maxWidth,
-        Math.floor(availableWidth * CARD_SIZE.viewportWidthRatio),
-    );
+    const viewportWidth = window.innerWidth;
+    const referenceGapWidth = (CARD_SIZE.referenceGlyphCount - 1) * CARD_SIZE.gap;
+    // Five glyphs, four gaps, and both side paddings make up 22.6vw.
+    const glyphSize = Math.max(1, (
+        viewportWidth * CARD_SIZE.referenceCardWidthRatio - referenceGapWidth
+    ) / (CARD_SIZE.referenceGlyphCount + 2 * CARD_SIZE.horizontalPaddingRatio));
+    const maxCardWidth = Math.floor(Math.min(
+        availableWidth,
+        viewportWidth * CARD_SIZE.viewportWidthRatio,
+    ));
 
     return {
         maxCardWidth,
-        glyphSize: CARD_SIZE.glyph,
+        glyphSize,
         gap: CARD_SIZE.gap,
     };
+}
+
+function applyWordCardMetrics(card, availableWidth) {
+    if (!card) return;
+    const metrics = calculateWordCardMetrics(availableWidth);
+    card.style.setProperty('--glyph-size', `${metrics.glyphSize}px`);
+    card.style.setProperty('--card-glyph-gap', `${metrics.gap}px`);
+    card.style.setProperty('--card-max-width', `${metrics.maxCardWidth}px`);
+    return metrics;
 }
 
 function updateCardSizing(words) {
@@ -597,14 +677,9 @@ function updateCardSizing(words) {
     if (!output || !words.length) return;
 
     const availableWidth = output.clientWidth;
-    const metrics = calculateWordCardMetrics(availableWidth);
-
-    output.style.setProperty('--card-max-width', `${metrics.maxCardWidth}px`);
-    output.style.setProperty('--card-glyph-gap', `${metrics.gap}px`);
-
     words.forEach((_, index) => {
         const wordContainer = output.children[index];
-        wordContainer?.style.setProperty('--glyph-size', `${metrics.glyphSize}px`);
+        applyWordCardMetrics(wordContainer, availableWidth);
     });
 }
 
@@ -750,7 +825,7 @@ window.addEventListener('DOMContentLoaded', () => {
 const textInput = document.getElementById('textInput');
 
 function resizeInputToContent(input) {
-    const minWidth = 150;
+    const minimumText = 'mmmmmmmmmmmm';
     const maxWidth = 500;
     const padding = 32; 
     
@@ -768,9 +843,12 @@ function resizeInputToContent(input) {
         padding: 0;
     `;
     
+    document.body.appendChild(temp);
+
+    temp.textContent = minimumText;
+    const minWidth = temp.offsetWidth + padding;
     // Measure the placeholder when the input is empty.
     temp.textContent = input.value || input.placeholder;
-    document.body.appendChild(temp);
     
     let newWidth = temp.offsetWidth + padding;
     document.body.removeChild(temp);
@@ -792,6 +870,7 @@ if (textInput) {
 
     // Resize once when the page loads.
     window.addEventListener('DOMContentLoaded', resizeInput);
+    document.fonts?.ready.then(resizeInput);
 }
 
 

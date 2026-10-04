@@ -1,8 +1,10 @@
 import { classifyLandmarks, loadClassifier } from './landmark-classifier.js';
 import { resolveInferenceConfig } from './asl-inference-config.js';
 import { LandmarkTemporalFilter, ProbabilityTemporalStabilizer } from './temporal-stabilization.js';
-import { applyTemperature, applyURAmbiguityRule, energyScore, evaluateConfidencePolicy, loadConfidenceArtifacts } from './confidence-postprocessing.js';
-import { createRawPredictionDebugOverlay } from './debug-prediction-overlay.js';
+import { applyTemperature, energyScore, loadConfidenceArtifacts } from './confidence-postprocessing.js';
+import { measureSThumbDepth } from './s-depth-disambiguation.js';
+import { measureURFingerCrossing } from './ur-crossing-disambiguation.js';
+import { chooseRecognitionCandidate } from './recognition-decision.js';
 
 const config = resolveInferenceConfig(window.FinglyphAslConfig);
 const HOLD_DURATION_MS = config.temporal.debounceMs;
@@ -31,7 +33,6 @@ const landmarkFilter = new LandmarkTemporalFilter(config.temporal);
 const probabilityStabilizer = new ProbabilityTemporalStabilizer(config.temporal);
 let confidencePolicy = config.confidence;
 let temperature = 1;
-const rawDebug = createRawPredictionDebugOverlay(document.getElementById('camera-panel'));
 
 function status(message) {
     document.getElementById('camera-status').textContent = message;
@@ -41,7 +42,7 @@ function progress(value) {
     document.getElementById('hold-progress').style.width = `${Math.max(0, Math.min(1, value)) * 100}%`;
 }
 
-function showLetter(letter, confidence = null) {
+function showLetter(letter) {
     const label = document.getElementById('camera-letter');
     const glyph = document.getElementById('camera-glyph');
     const candidate = label.closest('.camera-candidate');
@@ -51,7 +52,6 @@ function showLetter(letter, confidence = null) {
     candidate.classList.toggle('is-empty', !validLetter);
     glyph.setAttribute('aria-hidden', String(!validLetter));
     label.textContent = validLetter ? String(letter).toUpperCase() : '';
-    label.title = validLetter && confidence !== null ? `${Math.round(confidence * 100)}%` : '';
 }
 
 async function prepareRecognizers() {
@@ -125,9 +125,9 @@ function updateCandidate(prediction, now) {
         return;
     }
 
-    const { letter, confidence } = prediction;
+    const { letter } = prediction;
     lastHandSeenAt = now;
-    showLetter(letter, confidence);
+    showLetter(letter);
 
     if (letter !== candidateLetter) {
         candidateLetter = letter;
@@ -167,19 +167,16 @@ async function recognizeFrame(video) {
             const filteredLandmarks = landmarkFilter.update(rawLandmarks, now);
             drawLandmarks(filteredLandmarks);
             const rawPrediction = classifyLandmarks(filteredLandmarks, classifierModel);
-            rawDebug.update(rawPrediction);
-            const calibratedPrediction = applyURAmbiguityRule(
-                applyTemperature(rawPrediction, temperature),
-                confidencePolicy.uFromRAmbiguityMargin,
-            );
+            const sDepth = measureSThumbDepth(filteredLandmarks, config.sDepth.minThumbDepthRatio);
+            const urCrossing = measureURFingerCrossing(filteredLandmarks);
+            const calibratedPrediction = applyTemperature(rawPrediction, temperature);
             if (calibratedPrediction) calibratedPrediction.energy = energyScore(calibratedPrediction.logits, temperature);
             const stabilizedPrediction = probabilityStabilizer.update(calibratedPrediction);
             if (stabilizedPrediction && calibratedPrediction) stabilizedPrediction.energy = calibratedPrediction.energy;
-            const decision = evaluateConfidencePolicy(stabilizedPrediction, confidencePolicy);
-            updateCandidate(decision.accepted ? stabilizedPrediction : null, now);
+            const candidate = chooseRecognitionCandidate(rawPrediction, sDepth, urCrossing, stabilizedPrediction, confidencePolicy);
+            updateCandidate(candidate, now);
         } else if (now - lastHandSeenAt >= RELEASE_DELAY_MS) {
             drawLandmarks(null);
-            rawDebug.clear();
             resetCandidate('Looking for a hand.');
             lockedLetter = null;
             resetTemporalState();

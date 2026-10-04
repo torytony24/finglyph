@@ -1,8 +1,10 @@
 import { classifyLandmarks, loadClassifier } from './landmark-classifier.js';
 import { resolveInferenceConfig } from './asl-inference-config.js';
 import { LandmarkTemporalFilter, ProbabilityTemporalStabilizer } from './temporal-stabilization.js';
-import { applyTemperature, applyURAmbiguityRule, energyScore, evaluateConfidencePolicy, loadConfidenceArtifacts } from './confidence-postprocessing.js';
-import { createRawPredictionDebugOverlay } from './debug-prediction-overlay.js';
+import { applyTemperature, energyScore, loadConfidenceArtifacts } from './confidence-postprocessing.js';
+import { measureSThumbDepth } from './s-depth-disambiguation.js';
+import { measureURFingerCrossing } from './ur-crossing-disambiguation.js';
+import { chooseRecognitionCandidate } from './recognition-decision.js';
 
 const config = resolveInferenceConfig(window.FinglyphAslConfig);
 const MODEL_URL = config.model.classifierPath;
@@ -48,42 +50,21 @@ const el = {
     footerPreview: document.querySelector('.tutorial-footer-preview'),
     inputPreview: document.querySelector('.tutorial-input-preview'),
     guide: document.querySelector('.gesture-guide'), skip: document.querySelector('.skip-link'),
-    debugNext: document.getElementById('debug-recognize-next'),
 };
+document.fonts?.ready.then(() => window.FinglyphResizeInputToContent?.(el.inputPreview));
 let landmarker, classifier, stream, animationId, targetIndex = 0, candidate, candidateAt = 0, lastHandAt = 0, running = false, completed = false, completionPending = false;
 let layoutAnimations = [];
 let previousGestureLetter = 'A';
-let finalWordSequenceSkipped = false;
 const landmarkFilter = new LandmarkTemporalFilter(config.temporal);
 const probabilityStabilizer = new ProbabilityTemporalStabilizer(config.temporal);
 let confidencePolicy = config.confidence;
 let temperature = 1;
-const rawDebug = createRawPredictionDebugOverlay(el.camera);
 
 const target = () => TARGETS[targetIndex];
 const status = text => { el.status.textContent = text; };
 const progress = value => { el.progress.style.width = `${Math.max(0, Math.min(1, value)) * 100}%`; };
 function reset(message) { candidate = null; candidateAt = 0; progress(0); if (message) status(message); }
 function resetTemporalState() { landmarkFilter.reset(); probabilityStabilizer.reset(); }
-
-function updateDebugButton() {
-    const finalLetters = el.found.querySelectorAll('.gesture-card[data-layout-row="1"]').length;
-    const cards = el.found.querySelectorAll('.tutorial-word-card');
-    let label;
-    if (!completionPending) label = `Debug: recognize ${target()}`;
-    else if (!completed) label = 'Debug: arrange HELLO';
-    else if (!el.found.classList.contains('is-word-output') && finalLetters < FINAL_WORD.length) label = 'Debug: finish FINGLYPH';
-    else if (!el.found.classList.contains('is-word-output')) label = 'Debug: show cards';
-    else if ([...cards].some(card => card.classList.contains('is-morphing'))) label = 'Debug: finish cards';
-    else if (!el.greeting.classList.contains('is-visible')) label = 'Debug: show greeting';
-    else if (!el.greeting.classList.contains('is-brand-only')) label = 'Debug: center Finglyph';
-    else if (!el.page.classList.contains('is-main-preview')) label = 'Debug: main preview';
-    else if (!el.page.classList.contains('is-finale')) label = 'Debug: finale';
-    else if (!el.page.classList.contains('is-finale-copy-visible')) label = 'Debug: show message';
-    else label = 'Debug: complete';
-    el.debugNext.textContent = label;
-    el.debugNext.disabled = label === 'Debug: complete';
-}
 
 function draw(landmarks) {
     const canvas = el.canvas;
@@ -201,11 +182,10 @@ function addGesture(letter, { row = 0, column = targetIndex, settle = false } = 
 }
 
 function revealFinalWord(index = 0) {
-    if (!completed || finalWordSequenceSkipped || el.found.classList.contains('is-word-output') || index >= FINAL_WORD.length) return;
+    if (!completed || el.found.classList.contains('is-word-output') || index >= FINAL_WORD.length) return;
     if (!el.found.querySelector(`.gesture-card[data-layout-row="1"][data-layout-column="${index}"]`)) {
         addGesture(FINAL_WORD[index], { row: 1, column: index, settle: true });
     }
-    updateDebugButton();
     if (index + 1 < FINAL_WORD.length) {
         window.setTimeout(() => revealFinalWord(index + 1), FINAL_WORD_LETTER_INTERVAL_MS);
     } else {
@@ -223,14 +203,7 @@ function waitForSignMorphs() {
 }
 
 function setWordCardLayout(card) {
-    const metrics = window.FinglyphGlyphMorph?.getWordCardMetrics(
-        el.page.clientWidth - 72,
-    );
-    if (!metrics) return;
-
-    card.style.setProperty('--glyph-size', `${metrics.glyphSize}px`);
-    card.style.setProperty('--card-glyph-gap', `${metrics.gap}px`);
-    card.style.setProperty('--card-max-width', `${metrics.maxCardWidth}px`);
+    window.FinglyphGlyphMorph?.sizeWordCard(card, el.page.clientWidth - 72);
 }
 
 function collectWordRow(word, row) {
@@ -255,13 +228,11 @@ function revealFinaleCopy() {
     el.page.classList.add('is-finale-copy-visible');
     el.start.removeAttribute('aria-hidden');
     el.start.removeAttribute('tabindex');
-    updateDebugButton();
 }
 
 function showFinale() {
     if (!el.page.classList.contains('is-main-preview') || el.page.classList.contains('is-finale')) return;
     el.page.classList.add('is-finale');
-    updateDebugButton();
     window.setTimeout(revealFinaleCopy, FINAL_BLUR_MS);
 }
 
@@ -271,11 +242,10 @@ function startMainPreview() {
     window.FinglyphResizeInputToContent?.(el.inputPreview);
     el.page.classList.add('is-main-preview');
     el.footerPreview.removeAttribute('aria-hidden');
-    updateDebugButton();
     window.setTimeout(showFinale, MAIN_PREVIEW_TRANSITION_MS + MAIN_PREVIEW_HOLD_MS);
 }
 
-function transitionToBrand({ instant = false } = {}) {
+function transitionToBrand() {
     if (el.greeting.classList.contains('is-brand-only')) return;
     const hello = el.greeting.querySelector('.tutorial-greeting__hello');
     const mark = el.greeting.querySelector('.tutorial-greeting__mark');
@@ -284,18 +254,12 @@ function transitionToBrand({ instant = false } = {}) {
     hello.style.width = `${hello.getBoundingClientRect().width}px`;
     mark.style.width = `${mark.getBoundingClientRect().width}px`;
     void el.greeting.offsetWidth;
-    if (instant) {
-        hello.style.transition = 'none';
-        mark.style.transition = 'none';
-        el.greeting.style.transition = 'none';
-    }
     hello.setAttribute('aria-hidden', 'true');
     mark.setAttribute('aria-hidden', 'true');
     el.greeting.setAttribute('aria-label', 'Finglyph');
     el.greeting.classList.add('is-brand-only');
     el.tagline.removeAttribute('aria-hidden');
     el.tagline.classList.add('is-visible');
-    updateDebugButton();
     window.setTimeout(startMainPreview, BRAND_COLLAPSE_MS + BRAND_HOLD_MS);
 }
 
@@ -303,7 +267,6 @@ function showGreeting() {
     if (el.greeting.classList.contains('is-visible')) return;
     el.greeting.removeAttribute('aria-hidden');
     el.greeting.classList.add('is-visible');
-    updateDebugButton();
     window.setTimeout(transitionToBrand, GREETING_REVEAL_MS + GREETING_HOLD_MS);
 }
 
@@ -360,52 +323,6 @@ function morphRowsIntoWordCards() {
             if (completedCards === rows.length) showGreeting();
         };
     });
-    updateDebugButton();
-}
-
-function debugAdvance() {
-    if (!completionPending) { accept(); return; }
-    if (!completed) { completePractice(); return; }
-
-    const finalLetters = el.found.querySelectorAll('.gesture-card[data-layout-row="1"]').length;
-    if (!el.found.classList.contains('is-word-output') && finalLetters < FINAL_WORD.length) {
-        finalWordSequenceSkipped = true;
-        [...FINAL_WORD].forEach((letter, index) => {
-            if (!el.found.querySelector(`.gesture-card[data-layout-row="1"][data-layout-column="${index}"]`)) {
-                addGesture(letter, { row: 1, column: index, settle: true });
-            }
-        });
-        updateDebugButton();
-        waitForSignMorphs();
-        return;
-    }
-    if (!el.found.classList.contains('is-word-output')) { morphRowsIntoWordCards(); return; }
-
-    const cards = [...el.found.querySelectorAll('.tutorial-word-card')];
-    if (cards.some(card => card.classList.contains('is-morphing'))) {
-        cards.forEach(card => {
-            card.getAnimations({ subtree: true }).forEach(animation => animation.cancel());
-            const background = card.querySelector('.tutorial-word-card__background');
-            background.style.transform = 'scaleX(1)';
-            background.style.opacity = '1';
-            card.classList.remove('is-morphing');
-        });
-        showGreeting();
-        return;
-    }
-    if (!el.greeting.classList.contains('is-visible')) { showGreeting(); return; }
-    if (!el.greeting.classList.contains('is-brand-only')) { transitionToBrand({ instant: true }); return; }
-    if (!el.page.classList.contains('is-main-preview')) {
-        el.greeting.querySelectorAll('.tutorial-greeting__hello, .tutorial-greeting__mark').forEach(part => { part.style.transition = 'none'; });
-        el.greeting.style.transition = 'none';
-        void el.greeting.offsetWidth;
-        startMainPreview();
-    } else if (!el.page.classList.contains('is-finale')) {
-        showFinale();
-    } else if (!el.page.classList.contains('is-finale-copy-visible')) {
-        el.page.classList.add('is-finale-blur-complete');
-        revealFinaleCopy();
-    }
 }
 
 function finalLayout() {
@@ -473,7 +390,6 @@ function stopCamera() {
 function beginCompletion() {
     if (completionPending) return;
     completionPending = true;
-    updateDebugButton();
 }
 
 function hideCameraForCompletion() {
@@ -491,7 +407,6 @@ function completePractice() {
     [...el.found.querySelectorAll('.gesture-card')].forEach(stopFloating);
     requestAnimationFrame(finalLayout);
     window.setTimeout(revealFinalWord, FINAL_WORD_START_DELAY_MS);
-    updateDebugButton();
 }
 
 function accept() {
@@ -505,7 +420,6 @@ function accept() {
         // one full second, then hide it as the cards move into their final layout.
         window.setTimeout(completePractice, FINAL_CARD_SETTLE_DELAY_MS);
     }
-    updateDebugButton();
 }
 
 function handlePrediction(result, now) {
@@ -528,19 +442,16 @@ function frame() {
             const filteredLandmarks = landmarkFilter.update(rawLandmarks, now);
             draw(filteredLandmarks);
             const rawPrediction = classifyLandmarks(filteredLandmarks, classifier);
-            rawDebug.update(rawPrediction);
-            const calibratedPrediction = applyURAmbiguityRule(
-                applyTemperature(rawPrediction, temperature),
-                confidencePolicy.uFromRAmbiguityMargin,
-            );
+            const sDepth = measureSThumbDepth(filteredLandmarks, config.sDepth.minThumbDepthRatio);
+            const urCrossing = measureURFingerCrossing(filteredLandmarks);
+            const calibratedPrediction = applyTemperature(rawPrediction, temperature);
             if (calibratedPrediction) calibratedPrediction.energy = energyScore(calibratedPrediction.logits, temperature);
             const stabilizedPrediction = probabilityStabilizer.update(calibratedPrediction);
             if (stabilizedPrediction && calibratedPrediction) stabilizedPrediction.energy = calibratedPrediction.energy;
-            const decision = evaluateConfidencePolicy(stabilizedPrediction, confidencePolicy);
-            handlePrediction(decision.accepted ? stabilizedPrediction : null, now);
+            const candidate = chooseRecognitionCandidate(rawPrediction, sDepth, urCrossing, stabilizedPrediction, confidencePolicy);
+            handlePrediction(candidate, now);
         } else if (now - lastHandAt >= RELEASE_DELAY_MS) {
             draw(null);
-            rawDebug.clear();
             reset('Show your hand in the frame.');
             resetTemporalState();
         }
@@ -578,10 +489,8 @@ async function startCamera() {
 }
 
 el.retry.addEventListener('click', startCamera);
-el.debugNext.addEventListener('click', debugAdvance);
 el.start.addEventListener('click', () => { if (el.page.classList.contains('is-finale-copy-visible')) window.location.assign('main_page.html'); });
 window.addEventListener('resize', () => { if (completed) finalLayout(); else repositionFloatingCards(); if (el.page.classList.contains('is-main-preview')) updateHeaderShift(); });
 window.addEventListener('beforeunload', () => { running = false; cancelAnimationFrame(animationId); stream?.getTracks().forEach(track => track.stop()); });
 updateGuide();
-updateDebugButton();
 if (TARGETS.length) startCamera(); else completePractice();

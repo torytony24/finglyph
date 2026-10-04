@@ -6,7 +6,6 @@ export const DEFAULT_CONFIDENCE_POLICY = Object.freeze({
     perClassThresholds: {},
     confusionGroupMargins: [],
     top2MarginByClass: {},
-    uFromRAmbiguityMargin: 0.12,
     maxEnergy: null,
 });
 
@@ -34,32 +33,12 @@ export function top2Margin(probabilities) {
     return first - second;
 }
 
-/**
- * Right-hand U is often narrowly scored below R. Preserve probability mass
- * but swap those two labels only for that explicitly configured ambiguity.
- */
-export function applyURAmbiguityRule(prediction, maxMargin = 0.12) {
-    if (!prediction?.labels?.length || !prediction?.probabilities?.length || prediction.letter !== 'R') return prediction;
-    const rIndex = prediction.labels.indexOf('R');
-    const uIndex = prediction.labels.indexOf('U');
-    if (rIndex < 0 || uIndex < 0) return prediction;
-    const difference = prediction.probabilities[rIndex] - prediction.probabilities[uIndex];
-    if (difference < 0 || difference > maxMargin) return prediction;
-
-    const probabilities = new Float32Array(prediction.probabilities);
-    [probabilities[rIndex], probabilities[uIndex]] = [probabilities[uIndex], probabilities[rIndex]];
-    return {
-        ...prediction,
-        probabilities,
-        index: uIndex,
-        letter: 'U',
-        confidence: probabilities[uIndex],
-        appliedAmbiguityRule: 'R-to-U',
-    };
-}
-
-export function evaluateConfidencePolicy(prediction, policy = DEFAULT_CONFIDENCE_POLICY) {
+export function evaluateConfidencePolicy(prediction, policy = DEFAULT_CONFIDENCE_POLICY, context = {}) {
     if (!prediction?.letter) return { accepted: false, reason: 'hysteresis' };
+    const depthConfirmedS = prediction.letter === 'S' && context.sDepth?.matchesS === true;
+    if (prediction.letter === 'S' && context.sDepth && !depthConfirmedS) {
+        return { accepted: false, reason: 's-thumb-depth' };
+    }
     const threshold = policy.perClassThresholds?.[prediction.letter] ?? policy.defaultThreshold;
     const margin = top2Margin(prediction.probabilities);
     const requiredMargin = policy.top2MarginByClass?.[prediction.letter] ?? policy.top2Margin;

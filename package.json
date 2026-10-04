@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test experiments/tests/*.test.mjs",
+    "test": "node --test tests/*.test.mjs experiments/tests/*.test.mjs",
     "evaluate:landmarks": "node experiments/tools/evaluate-landmarks.mjs"
   }
 }
