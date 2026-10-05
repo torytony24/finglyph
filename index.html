@@ -17,11 +17,15 @@
     <style>body { font-family: 'Poppins', Arial, Helvetica, sans-serif; }</style>
 </head>
 <body>
-    <div class="mobile-unsupported" role="main">
+    <div class="mobile-unsupported" id="mobile-notice" role="main" style="display: none;">
         <p>모바일은 지원하지 않습니다.<br />컴퓨터에서 이용해 주세요.</p>
     </div>
     <script>
-        if (!document.documentElement.classList.contains('is-mobile-device')) {
+        // mobile-access.js 또는 여기서 모바일 여부 판단
+        // 만약 모바일 기기라면 메시지를 보여주고, 아니면 start_page로 이동
+        if (document.documentElement.classList.contains('is-mobile-device')) {
+            document.getElementById('mobile-notice').style.display = 'block';
+        } else {
             window.location.replace('start_page.html');
         }
     </script>

@@ -114,11 +114,6 @@ body {
 }
 
 
-/* The previous development-only shortcut is kept in the markup for now,
-   but must not appear in the tutorial flow. */
-.debug-main-button {
-    display: none;
-}
 
 .tutorial-step.is-transitioning {
     animation: tutorial-step-out 260ms ease-in both;
