@@ -8,6 +8,7 @@
 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="js/mobile-access.js"></script>
     <title>Finglyph</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,7 +21,7 @@
         <p>모바일은 지원하지 않습니다.<br />컴퓨터에서 이용해 주세요.</p>
     </div>
     <script>
-        if (!window.matchMedia('(max-width: 767px)').matches) {
+        if (!document.documentElement.classList.contains('is-mobile-device')) {
             window.location.replace('start_page.html');
         }
     </script>

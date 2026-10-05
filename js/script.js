@@ -785,7 +785,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('textInput');
     staging = document.getElementById('morph-staging');
 
-    if (!input || !staging) return;
+    if (!staging) return;
+    if (!input || !document.getElementById('output')) return;
 
     input.value = DEFAULT_WORDS.join(' ');
     reconcileOutput(DEFAULT_WORDS, true);

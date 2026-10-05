@@ -2,3 +2,230 @@
     flex: 1;
     overflow-y: auto;
 }
+
+.how-to-use-page .info-content {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+}
+
+.how-to-use-page .info-content::-webkit-scrollbar {
+    display: none;
+}
+
+.how-to-use-page .how-to-use-slide {
+    display: grid;
+    flex: 0 0 100%;
+    width: 100%;
+    place-items: center;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+}
+
+.how-to-use-page .how-to-use-slide--intro,
+.how-to-use-page .how-to-use-slide--instructions,
+.how-to-use-page .how-to-use-slide--download,
+.how-to-use-page .how-to-use-slide--input {
+    position: relative;
+}
+
+.how-to-use-page .how-to-use-intro-words {
+    display: flex;
+    width: calc(100% - 72px);
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(6px, 1.5vh, 16px);
+}
+
+.how-to-use-page .how-to-use-intro-word {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+}
+
+.how-to-use-page .how-to-use-copy {
+    position: absolute;
+    left: 60px;
+    width: min(580px, calc(100% - 96px));
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1.65;
+    text-align: left;
+}
+
+.how-to-use-page .how-to-use-intro-copy {
+    bottom: 56px;
+}
+
+.how-to-use-page .how-to-use-instructions {
+    top: clamp(44px, 8vh, 88px);
+}
+
+.how-to-use-page .how-to-use-slide-visual {
+    position: absolute;
+    bottom: 36px;
+    display: block;
+    width: min(320px, 48dvh, calc(50% - 54px));
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+}
+
+.how-to-use-page .how-to-use-slide-visual--placeholder {
+    left: 60px;
+    background: #d9d9d9;
+}
+
+.how-to-use-page .how-to-use-slide-visual--thumbnail {
+    right: 36px;
+    object-fit: cover;
+}
+
+.how-to-use-page .how-to-use-slide--download {
+    --download-visual-size: min(45vw, 65dvh);
+}
+
+.how-to-use-page .how-to-use-download-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 60px;
+    width: var(--download-visual-size);
+    aspect-ratio: 1;
+    border-radius: 8px;
+    background: #d9d9d9;
+    transform: translateY(-50%);
+}
+
+.how-to-use-page .how-to-use-download-copy {
+    top: clamp(44px, 8vh, 88px);
+    right: 60px;
+    left: auto;
+    width: min(580px, calc(100% - var(--download-visual-size) - 160px));
+}
+
+.how-to-use-page .how-to-use-limit-copy {
+    top: clamp(44px, 8vh, 88px);
+}
+
+.how-to-use-page .how-to-use-input-demo {
+    position: absolute;
+    top: calc(50% - 63.5px);
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.description-page .info-content {
+    min-height: 0;
+    padding: 48px 60px 36px 44px;
+    scrollbar-width: none;
+}
+
+.description-page .info-content::-webkit-scrollbar {
+    display: none;
+}
+
+.description-page .sign-grid {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    column-gap: clamp(16px, 2vw, 32px);
+    row-gap: clamp(48px, 7vw, 112px);
+    list-style: none;
+}
+
+.description-page .sign-grid li {
+    position: relative;
+    aspect-ratio: 1;
+}
+
+.description-page .sign-grid__hand {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 2px;
+    object-fit: contain;
+}
+
+.description-page .sign-grid__letter {
+    position: absolute;
+    right: 10%;
+    bottom: 2%;
+    display: block;
+    width: 32%;
+    height: 32%;
+    object-fit: contain;
+    object-position: right bottom;
+}
+
+.description-page .sign-description {
+    position: fixed;
+    z-index: 5;
+    width: max-content;
+    max-width: min(380px, calc(100vw - 32px));
+    margin: 0;
+    color: var(--ink-color);
+    font-family: 'Poppins', Arial, Helvetica, sans-serif;
+    font-size: 18px;
+    font-weight: 300;
+    line-height: 1.65;
+    text-align: left;
+    pointer-events: none;
+}
+
+@media (hover: hover) {
+    .description-page .sign-grid li {
+        transition: filter 220ms ease, opacity 220ms ease, transform 220ms ease;
+    }
+
+    .description-page .sign-grid:has(li:hover) li:not(:hover) {
+        filter: blur(6px);
+        opacity: 0.35;
+    }
+
+    .description-page .sign-grid li:hover {
+        z-index: 1;
+        transform: scale(1.08);
+    }
+}
+
+@media (max-width: 1199px) {
+    .description-page .sign-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        row-gap: 40px;
+    }
+}
+
+@media (max-width: 767px) {
+    .description-page .top-fixed {
+        height: auto;
+        padding: 20px 16px 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .description-page .top-fixed h1 {
+        font-size: clamp(32px, 10vw, 48px);
+        line-height: 1.15;
+    }
+
+    .description-page .top-right-buttons {
+        width: 100%;
+    }
+
+    .description-page .nav-btn {
+        padding: 8px 6px;
+        font-size: clamp(10px, 2.8vw, 13px);
+    }
+
+    .description-page .info-content {
+        padding: 32px 28px 32px 20px;
+    }
+}
+
+@media (max-width: 420px) {
+    .description-page .sign-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        row-gap: 24px;
+    }
+}

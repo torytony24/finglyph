@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="js/mobile-access.js"></script>
     <script src="js/nav-menu.js" async></script>
     <title>How to use - Finglyph</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -12,7 +13,7 @@
     <link rel="stylesheet" href="css/info-pages.css" />
     <link rel="stylesheet" href="css/mobile-unsupported.css" />
 </head>
-<body>
+<body class="how-to-use-page">
     <div class="mobile-unsupported" role="main"><p>Mobile devices are not supported.<br />Please use a desktop computer.</p></div>
     <div class="container">
         <header class="top-fixed">
@@ -24,7 +25,40 @@
                 <span class="nav-indicator" aria-hidden="true"></span>
             </nav>
         </header>
-        <main class="info-content"></main>
+        <main class="info-content">
+            <section class="how-to-use-slide how-to-use-slide--intro" aria-label="Slide 1">
+                <div class="how-to-use-intro-words" aria-label="hello finglyph">
+                    <div class="how-to-use-intro-word" data-morph-word="hello"></div>
+                    <div class="how-to-use-intro-word" data-morph-word="finglyph"></div>
+                </div>
+                <p class="how-to-use-copy how-to-use-intro-copy">Finglyph is a sign language typography editor that turns hand gestures into visual art instead of text. By drawing and erasing letters in front of the camera, both deaf and hearing users can experience the beauty of manual alphabets recording and sharing their initials, words, and sentences.</p>
+            </section>
+            <section class="how-to-use-slide how-to-use-slide--instructions" aria-label="Slide 2">
+                <p class="how-to-use-copy how-to-use-instructions">For accurate recognition, please maintain a distance of about 30 cm from the camera and hold your hand sign steady for a second. Once your gesture is successfully detected, the manual alphabet graphic will clearly appear on the screen. Combine these graphics to freely craft your own initials, words, or full sentences, creating your very own typography piece.</p>
+                <div class="how-to-use-slide-visual how-to-use-slide-visual--placeholder" role="img" aria-label="Placeholder image"></div>
+                <img class="how-to-use-slide-visual how-to-use-slide-visual--thumbnail" src="assets/thumbnail.png" alt="Webcam preview placeholder showing a dog" />
+            </section>
+            <section class="how-to-use-slide how-to-use-slide--download" aria-label="Slide 3">
+                <div class="how-to-use-download-placeholder" role="img" aria-label="Placeholder image"></div>
+                <p class="how-to-use-copy how-to-use-download-copy">Tap the download icon to save the letters created by your hands. It can be used as a stylish initial postcard for someone special, or a secret encrypted message shared between those who understand the beauty of sign language.</p>
+            </section>
+            <section class="how-to-use-slide how-to-use-slide--input" aria-label="Slide 4">
+                <p class="how-to-use-copy how-to-use-limit-copy">Supports up to 100 characters. Characters beyond the frame will not be shown, so try crafting a concise message within the limit.</p>
+                <div class="how-to-use-input-demo">
+                    <input
+                        type="text"
+                        id="textInput"
+                        placeholder="Type anything..."
+                        aria-label="Type a message"
+                        autocomplete="off"
+                        spellcheck="false"
+                    />
+                </div>
+            </section>
+        </main>
     </div>
+    <div id="morph-staging" aria-hidden="true"></div>
+    <script src="js/script.js"></script>
+    <script src="js/how-to-use.js"></script>
 </body>
 </html>

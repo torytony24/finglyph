@@ -427,10 +427,46 @@ h1 {
     transition: width 80ms linear;
 }
 
+@media (max-width: 767px) {
+    .top-fixed {
+        height: auto;
+        padding: 20px 16px 0;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .top-fixed h1 {
+        font-size: clamp(32px, 10vw, 48px);
+        line-height: 1.15;
+    }
+
+    .top-right-buttons {
+        width: 100%;
+    }
+
+    .nav-btn {
+        padding: 8px 6px;
+        font-size: clamp(10px, 2.8vw, 13px);
+    }
+
+    .main-scrollable {
+        padding: 24px 16px;
+    }
+
+    .bottom-fixed {
+        padding: 20px 16px;
+    }
+
+    #textInput {
+        max-width: 100%;
+    }
+}
+
 @media (max-width: 720px) {
     #camera-panel {
         right: 16px;
-        bottom: 16px;
+        bottom: 88px;
         width: min(280px, calc(100vw - 32px));
     }
 }

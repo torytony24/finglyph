@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="js/mobile-access.js"></script>
     <title>Finglyph</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -42,7 +43,7 @@
     <div id="morph-staging" aria-hidden="true"></div>
     <script src="js/script.js"></script>
     <script type="module">
-        if (!window.matchMedia('(max-width: 767px)').matches) {
+        if (!document.documentElement.classList.contains('is-mobile-device')) {
             import('./js/tutorial-page.js');
         }
     </script>
