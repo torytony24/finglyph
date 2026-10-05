@@ -515,7 +515,7 @@ function createFallbackSVG(character) {
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dominant-baseline', 'middle');
     text.setAttribute('font-size', '.38');
-    text.setAttribute('font-family', 'Poppins, Arial, Helvetica, sans-serif');
+    text.setAttribute('font-family', 'Inter, Arial, Helvetica, sans-serif');
     text.setAttribute('fill', '#2c6239');
     text.textContent = character.toUpperCase();
 

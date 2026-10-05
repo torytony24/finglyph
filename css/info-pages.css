@@ -167,8 +167,8 @@
     right: 10%;
     bottom: 2%;
     display: block;
-    width: 32%;
-    height: 32%;
+    width: 20%;
+    height: 20%;
     object-fit: contain;
     object-position: right bottom;
 }
@@ -180,8 +180,8 @@
     max-width: min(380px, calc(100vw - 32px));
     margin: 0;
     color: var(--ink-color);
-    font-family: 'Poppins', Arial, Helvetica, sans-serif;
-    font-size: 18px;
+    font-family: 'Inter', Arial, Helvetica, sans-serif;
+    font-size: 12px;
     font-weight: 300;
     line-height: 1.65;
     text-align: left;
