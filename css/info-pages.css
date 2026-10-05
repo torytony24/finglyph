@@ -115,6 +115,22 @@
     transform: translate(-50%, -50%);
 }
 
+.how-to-use-page .how-to-use-demo-input {
+    width: auto;
+    max-width: min(500px, calc(100vw - 32px));
+    padding: 8px 16px;
+    border: 0;
+    background: #f4f4f4;
+    color: var(--ink-color);
+    font-size: 16px;
+    text-align: left;
+}
+
+.how-to-use-page .how-to-use-demo-input:focus {
+    outline: none;
+    box-shadow: none;
+}
+
 .description-page .info-content {
     min-height: 0;
     padding: 48px 60px 36px 44px;

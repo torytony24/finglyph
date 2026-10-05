@@ -35,9 +35,19 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const scrollArea = document.querySelector('.info-content');
     const inputSlide = document.querySelector('.how-to-use-slide--input');
-    const input = inputSlide?.querySelector('#textInput');
+    const input = inputSlide?.querySelector('#howToUseTextInput');
 
     if (scrollArea && inputSlide && input) {
+        function resetDemoInput() {
+            input.value = '';
+            window.FinglyphResizeInputToContent?.(input);
+        }
+
+        resetDemoInput();
+        input.addEventListener('input', () => window.FinglyphResizeInputToContent?.(input));
+        document.fonts?.ready.then(() => window.FinglyphResizeInputToContent?.(input));
+        window.addEventListener('pageshow', resetDemoInput);
+
         let wasActive = false;
 
         function syncInputFocus() {
@@ -55,6 +65,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
 
         scrollArea.addEventListener('scroll', syncInputFocus, { passive: true });
+        window.addEventListener('pageshow', syncInputFocus);
         syncInputFocus();
     }
 });
