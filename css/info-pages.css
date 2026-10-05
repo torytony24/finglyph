@@ -3,6 +3,98 @@
     overflow-y: auto;
 }
 
+.behind-page .info-content {
+    min-height: 0;
+    padding: clamp(44px, 8vh, 88px) 0 80px;
+}
+
+.behind-page .behind-copy {
+    width: min(580px, calc(100% - 96px));
+    margin-left: 60px;
+    text-align: left;
+}
+
+.behind-page .behind-title {
+    margin-bottom: 48px;
+    font-size: 36px;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.behind-page .behind-chapter {
+    margin-top: 96px;
+}
+
+.behind-page .behind-topic + .behind-topic {
+    margin-top: 64px;
+}
+
+.behind-page .behind-topic .behind-section + .behind-section {
+    margin-top: 20px;
+}
+
+.behind-page .behind-section[lang="ko"] {
+    font-family: 'Inter', 'Noto Sans KR', sans-serif;
+}
+
+.behind-page .behind-section[lang="en"] {
+    font-family: 'Inter', Arial, Helvetica, sans-serif;
+}
+
+.behind-page .behind-section[lang="ko"] [lang="en"] {
+    font-family: 'Inter', Arial, Helvetica, sans-serif;
+}
+
+.behind-page .behind-section h3 {
+    margin-bottom: 14px;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+.behind-page .behind-section p {
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 1.65;
+}
+
+.behind-page .behind-development-topic + .behind-development-topic {
+    margin-top: 64px;
+}
+
+.behind-page .behind-development-topic p + p {
+    margin-top: 16px;
+}
+
+.behind-page .behind-illustration {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 20px 0;
+}
+
+.behind-page .behind-equation {
+    overflow-x: auto;
+    margin: 20px 0;
+    font-size: 16px;
+}
+
+.behind-page .behind-equation math {
+    width: max-content;
+}
+
+.behind-page .behind-info-list {
+    padding-left: 18px;
+    font-family: 'Inter', 'Noto Sans KR', sans-serif;
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 1.65;
+}
+
+.behind-page .behind-info-list li + li {
+    margin-top: 10px;
+}
+
 .how-to-use-page .info-content {
     display: flex;
     min-height: 0;
