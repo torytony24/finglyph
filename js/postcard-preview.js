@@ -169,8 +169,9 @@ async function renderPostcard() {
     const currentRender = ++renderVersion;
     postcardDebugDownload.disabled = true;
     const wordCards = document.querySelectorAll('#output .word-container');
-    const words = [...wordCards].map(card => card.getAttribute('aria-label'));
-    const validWords = words.some(word => !word) ? [] : words;
+    const validWords = [...wordCards]
+        .map(card => (card.getAttribute('aria-label') || '').replace(/[^a-zA-Z]/g, ''))
+        .filter(Boolean);
     const height = validWords.length >= 5 ? getTallLayout(validWords.length).height : 1200;
     if (postcardCanvas.height !== height) postcardCanvas.height = height;
     updatePreviewSize();

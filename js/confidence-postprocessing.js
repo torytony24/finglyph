@@ -60,7 +60,7 @@ export function evaluateConfidencePolicy(prediction, policy = DEFAULT_CONFIDENCE
 
 async function readOptionalJson(url) {
     if (!url) return null;
-    const response = await fetch(url, { cache: 'no-store' });
+    const response = await fetch(url);
     if (!response.ok) return null;
     return response.json();
 }

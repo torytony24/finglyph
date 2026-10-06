@@ -5,6 +5,7 @@ import { applyTemperature, energyScore, loadConfidenceArtifacts } from './confid
 import { measureSThumbDepth } from './s-depth-disambiguation.js';
 import { measureURFingerCrossing } from './ur-crossing-disambiguation.js';
 import { chooseRecognitionCandidate } from './recognition-decision.js';
+import { loadHandLandmarkerModel } from './tutorial-model-cache.js';
 
 const config = resolveInferenceConfig(window.FinglyphAslConfig);
 const MODEL_URL = config.model.classifierPath;
@@ -52,7 +53,8 @@ const el = {
     guide: document.querySelector('.gesture-guide'), skip: document.querySelector('.skip-link'),
 };
 document.fonts?.ready.then(() => window.FinglyphResizeInputToContent?.(el.inputPreview));
-let landmarker, classifier, stream, animationId, targetIndex = 0, candidate, candidateAt = 0, lastHandAt = 0, running = false, completed = false, completionPending = false;
+let landmarker, classifier, stream, animationId, targetIndex = 0, candidate, candidateAt = 0, lastHandAt = 0, running = false, starting = false, completed = false, completionPending = false;
+let useCpuLandmarker = false;
 let layoutAnimations = [];
 let previousGestureLetter = 'A';
 const landmarkFilter = new LandmarkTemporalFilter(config.temporal);
@@ -162,8 +164,7 @@ function addGesture(letter, { row = 0, column = targetIndex, settle = false } = 
     card.dataset.layoutColumn = String(column);
     const content = document.createElement('div'); content.className = 'gesture-card__content';
     const glyph = document.createElement('span'); glyph.className = 'gesture-card__glyph'; glyph.setAttribute('aria-hidden', 'true');
-    const label = document.createElement('span'); label.textContent = letter;
-    content.append(glyph, label); card.append(content); el.found.append(card);
+    content.append(glyph); card.append(content); el.found.append(card);
     const position = finalCardPosition(row, column);
     card.style.setProperty('--gesture-size', `${position.cardSize}px`);
     window.FinglyphGlyphMorph?.renderTransition(glyph, previousGestureLetter, letter);
@@ -390,6 +391,7 @@ function stopCamera() {
 function beginCompletion() {
     if (completionPending) return;
     completionPending = true;
+    el.skip.hidden = true;
 }
 
 function hideCameraForCompletion() {
@@ -407,6 +409,19 @@ function completePractice() {
     [...el.found.querySelectorAll('.gesture-card')].forEach(stopFloating);
     requestAnimationFrame(finalLayout);
     window.setTimeout(revealFinalWord, FINAL_WORD_START_DELAY_MS);
+}
+
+function skipRecognition() {
+    if (completed || completionPending) return;
+    beginCompletion();
+    el.guide.setAttribute('aria-hidden', 'true');
+    el.guide.style.visibility = 'hidden';
+    el.retry.hidden = true;
+    for (; targetIndex < TARGETS.length; targetIndex += 1) {
+        addGesture(target());
+    }
+    reset('Continuing tutorial...');
+    window.setTimeout(completePractice, FINAL_CARD_SETTLE_DELAY_MS);
 }
 
 function accept() {
@@ -435,8 +450,24 @@ function frame() {
     if (!running) return;
     if (completionPending) { animationId = requestAnimationFrame(frame); return; }
     const now = performance.now();
-    if (el.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-        const rawLandmarks = landmarker.detectForVideo(el.video, now).landmarks?.[0];
+    if (el.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && el.video.videoWidth > 0) {
+        if (el.canvas.width !== el.video.videoWidth || el.canvas.height !== el.video.videoHeight) {
+            el.canvas.width = el.video.videoWidth;
+            el.canvas.height = el.video.videoHeight;
+        }
+        let rawLandmarks;
+        try {
+            rawLandmarks = landmarker.detectForVideo(el.video, now).landmarks?.[0];
+        } catch (error) {
+            console.error('Tutorial hand recognition failed:', error);
+            running = false;
+            useCpuLandmarker = true;
+            try { landmarker?.close?.(); } catch (closeError) { console.warn('Could not close hand recognition:', closeError); }
+            landmarker = undefined;
+            status('Hand recognition stopped. Try camera again.');
+            el.retry.hidden = false;
+            return;
+        }
         if (rawLandmarks) {
             lastHandAt = now;
             const filteredLandmarks = landmarkFilter.update(rawLandmarks, now);
@@ -459,36 +490,86 @@ function frame() {
     animationId = requestAnimationFrame(frame);
 }
 
+async function prepareRecognition() {
+    if (!landmarker) {
+        const [{ FilesetResolver, HandLandmarker }, modelBuffer] = await Promise.all([
+            import(MEDIAPIPE_MODULE),
+            loadHandLandmarkerModel(LANDMARKER_URL),
+        ]);
+        const vision = await FilesetResolver.forVisionTasks(WASM_URL);
+        const options = {
+            baseOptions: { modelAssetBuffer: modelBuffer.slice(), delegate: useCpuLandmarker ? 'CPU' : config.model.delegate },
+            runningMode: 'VIDEO',
+            numHands: config.model.numHands,
+            minHandDetectionConfidence: config.model.minHandDetectionConfidence,
+            minHandPresenceConfidence: config.model.minHandPresenceConfidence,
+            minTrackingConfidence: config.model.minTrackingConfidence,
+        };
+        try {
+            landmarker = await HandLandmarker.createFromOptions(vision, options);
+        } catch (error) {
+            if (options.baseOptions.delegate !== 'GPU') throw error;
+            console.warn('Tutorial GPU hand recognition unavailable; trying CPU:', error);
+            useCpuLandmarker = true;
+            options.baseOptions.delegate = 'CPU';
+            options.baseOptions.modelAssetBuffer = modelBuffer.slice();
+            landmarker = await HandLandmarker.createFromOptions(vision, options);
+        }
+    }
+    if (!classifier) {
+        const [model, artifacts] = await Promise.all([loadClassifier(MODEL_URL), loadConfidenceArtifacts(config.confidence, config.confidence)]);
+        classifier = model; temperature = artifacts.temperature; confidencePolicy = artifacts.policy;
+        if (confidencePolicy.defaultThreshold >= config.temporal.exitThreshold) config.temporal.entryThreshold = confidencePolicy.defaultThreshold;
+    }
+}
+
+function cameraErrorMessage(error, phase) {
+    if (phase === 'recognition') return 'Camera is on, but hand recognition could not load. Try again.';
+    if (phase === 'playback') return 'Camera opened, but video could not play. Try again.';
+    if (!navigator.mediaDevices?.getUserMedia && !window.isSecureContext) return 'Use HTTPS or localhost to access the camera.';
+    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') return 'Allow camera access in your browser and system settings, then try again.';
+    if (error.name === 'NotFoundError') return 'No camera found. Connect one and try again.';
+    if (error.name === 'NotReadableError') return 'Camera is busy or unavailable. Close other camera apps and try again.';
+    return 'The camera could not start. Try again.';
+}
+
 async function startCamera() {
-    if (running || completed || completionPending) return; el.retry.hidden = true; status('Preparing the camera...');
+    if (starting || running || completed || completionPending) return;
+    starting = true;
+    el.retry.hidden = true;
+    let phase = 'camera';
     try {
-        if (!landmarker) {
-            const { FilesetResolver, HandLandmarker } = await import(MEDIAPIPE_MODULE);
-            const vision = await FilesetResolver.forVisionTasks(WASM_URL);
-            landmarker = await HandLandmarker.createFromOptions(vision, {
-                baseOptions: { modelAssetPath: LANDMARKER_URL, delegate: config.model.delegate },
-                runningMode: 'VIDEO',
-                numHands: config.model.numHands,
-                minHandDetectionConfidence: config.model.minHandDetectionConfidence,
-                minHandPresenceConfidence: config.model.minHandPresenceConfidence,
-                minTrackingConfidence: config.model.minTrackingConfidence,
-            });
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error('getUserMedia is unavailable');
+        if (!stream?.active) {
+            status('Requesting camera access...');
+            stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: config.camera.facingMode, width: { ideal: config.camera.width }, height: { ideal: config.camera.height }, frameRate: { ideal: 30 } } });
         }
-        if (!classifier) {
-            const [model, artifacts] = await Promise.all([loadClassifier(MODEL_URL), loadConfidenceArtifacts(config.confidence, config.confidence)]);
-            classifier = model; temperature = artifacts.temperature; confidencePolicy = artifacts.policy;
-            if (confidencePolicy.defaultThreshold >= config.temporal.exitThreshold) config.temporal.entryThreshold = confidencePolicy.defaultThreshold;
-        }
+        if (completed || completionPending) { stopCamera(); return; }
+        phase = 'playback';
+        if (el.video.srcObject !== stream) el.video.srcObject = stream;
+        if (el.video.paused) await el.video.play();
+        if (completed || completionPending) { stopCamera(); return; }
+        el.canvas.width = el.video.videoWidth;
+        el.canvas.height = el.video.videoHeight;
+        phase = 'recognition';
+        status('Camera on. Loading hand recognition...');
+        await prepareRecognition();
         if (completed || completionPending) return;
-        stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: config.camera.facingMode, width: { ideal: config.camera.width }, height: { ideal: config.camera.height }, frameRate: { ideal: 30 } } });
-        if (completed || completionPending) { stream.getTracks().forEach(track => track.stop()); return; }
-        el.video.srcObject = stream; await el.video.play(); el.canvas.width = el.video.videoWidth; el.canvas.height = el.video.videoHeight; running = true; status(`Make the ${target()} hand sign.`); frame();
+        running = true;
+        status(`Make the ${target()} hand sign.`);
+        frame();
     } catch (error) {
-        console.error('Tutorial camera failed:', error); status(error.name === 'NotAllowedError' ? 'Camera permission is needed for this practice.' : 'The camera could not start.'); el.retry.hidden = false;
+        if (completed || completionPending) return;
+        console.error('Tutorial camera failed:', error);
+        status(cameraErrorMessage(error, phase));
+        el.retry.hidden = false;
+    } finally {
+        starting = false;
     }
 }
 
 el.retry.addEventListener('click', startCamera);
+el.skip.addEventListener('click', skipRecognition);
 el.start.addEventListener('click', () => { if (el.page.classList.contains('is-finale-copy-visible')) window.location.assign('main_page.html'); });
 window.addEventListener('resize', () => { if (completed) finalLayout(); else repositionFloatingCards(); if (el.page.classList.contains('is-main-preview')) updateHeaderShift(); });
 window.addEventListener('beforeunload', () => { running = false; cancelAnimationFrame(animationId); stream?.getTracks().forEach(track => track.stop()); });

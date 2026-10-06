@@ -1,5 +1,6 @@
-// Change this value (milliseconds) to change the first-step loading time.
+// Keep the intro visible for at least six seconds while tutorial assets load.
 const INTRO_DURATION_MS = 6000;
+const MAX_INTRO_DURATION_MS = 15000;
 
 const progressBar = document.querySelector('.tutorial-progress');
 const progressFill = document.querySelector('.tutorial-progress__fill');
@@ -9,6 +10,15 @@ const practiceButton = document.querySelector('[data-go-to-practice]');
 const morphPreview = document.querySelector('[data-morph-preview]');
 
 let isAdvancing = false;
+let resourcesReady = false;
+
+const preloading = document.documentElement.classList.contains('is-mobile-device')
+    ? Promise.resolve()
+    : import('./tutorial-preload.js?v=tutorial-preload-20261006')
+        .then(({ preloadTutorialResources }) => preloadTutorialResources());
+preloading.catch(error => console.warn('Tutorial preload failed:', error)).finally(() => {
+    resourcesReady = true;
+});
 
 function advanceTutorial() {
     if (isAdvancing) return;
@@ -21,12 +31,14 @@ function advanceTutorial() {
 
 function runIntroLoadingBar(startTime) {
     const elapsed = performance.now() - startTime;
-    const completion = Math.min(elapsed / INTRO_DURATION_MS, 1);
+    const canAdvance = elapsed >= INTRO_DURATION_MS
+        && (resourcesReady || elapsed >= MAX_INTRO_DURATION_MS);
+    const completion = canAdvance ? 1 : Math.min(elapsed / INTRO_DURATION_MS, 0.95);
 
     progressFill.style.transform = `scaleX(${completion})`;
     progressBar.setAttribute('aria-valuenow', String(Math.round(completion * 100)));
 
-    if (completion < 1) {
+    if (!canAdvance) {
         window.requestAnimationFrame(() => runIntroLoadingBar(startTime));
         return;
     }

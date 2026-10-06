@@ -743,11 +743,12 @@ window.FinglyphGlyphMorph = {
     renderWord(container, word, { animate = true, glyphSize } = {}) {
         if (!container || !staging) return;
 
-        const characters = [...filterWord(String(word || ''))];
+        const lettersOnly = filterWord(String(word || ''));
+        const characters = [...lettersOnly];
         const wordContainer = document.createElement('div');
         wordContainer.className = 'word-container';
         wordContainer.setAttribute('role', 'img');
-        wordContainer.setAttribute('aria-label', `${word} hand-sign card`);
+        wordContainer.setAttribute('aria-label', `${lettersOnly} hand-sign card`);
         applyWordCardMetrics(wordContainer, container.clientWidth);
         if (glyphSize != null) wordContainer.style.setProperty('--glyph-size', `${glyphSize}px`);
 
@@ -786,7 +787,7 @@ function disposeRecord(record) {
 }
 
 function filterWord(word) {
-    return word.replace(/[^a-zA-Z~!@&?.,]/g, '');
+    return word.replace(/[^a-zA-Z]/g, '');
 }
 
 function parseWords(inputValue) {

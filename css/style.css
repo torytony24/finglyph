@@ -208,9 +208,9 @@ h1 {
     --nav-highlight-opacity: 1;
 }
 
-.top-right-buttons:has(.nav-btn:nth-child(1)[aria-current="page"]) .nav-indicator { left: 0%; }
-.top-right-buttons:has(.nav-btn:nth-child(2)[aria-current="page"]) .nav-indicator { left: 33.3333%; }
-.top-right-buttons:has(.nav-btn:nth-child(3)[aria-current="page"]) .nav-indicator { left: 66.6667%; }
+.top-right-buttons:has(.nav-btn.how-to-use[aria-current="page"]) .nav-indicator { left: 0%; }
+.top-right-buttons:has(.nav-btn.description[aria-current="page"]) .nav-indicator { left: 33.3333%; }
+.top-right-buttons:has(.nav-btn.behind[aria-current="page"]) .nav-indicator { left: 66.6667%; }
 
 .nav-indicator { opacity: var(--nav-highlight-opacity, 0); }
 .top-right-buttons:has(.nav-btn[aria-current="page"]:is(:hover, :focus-visible)) .nav-indicator {
