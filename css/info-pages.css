@@ -151,22 +151,57 @@
     bottom: 56px;
 }
 
+.how-to-use-page .how-to-use-scroll-cue {
+    position: absolute;
+    right: 36px;
+    bottom: 36px;
+    display: block;
+    pointer-events: none;
+}
+
+@media (max-width: 700px) {
+    .how-to-use-page .how-to-use-scroll-cue {
+        right: 16px;
+        bottom: 16px;
+        width: 82px;
+        height: auto;
+    }
+}
+
 .how-to-use-page .how-to-use-instructions {
     top: clamp(44px, 8vh, 88px);
+}
+
+.how-to-use-page .how-to-use-slide--instructions {
+    --thumbnail-width: min(320px, 48dvh, calc(50% - 54px));
+}
+
+.how-to-use-page .how-to-use-30cm {
+    position: absolute;
+    bottom: 36px;
+    left: 60px;
+    display: block;
+    width: min(410px, calc(100% - var(--thumbnail-width) - 120px));
+    height: auto;
+}
+
+.how-to-use-page .how-to-use-paw {
+    position: absolute;
+    top: 50%;
+    right: clamp(60px, 7vw, 120px);
+    display: block;
+    width: 40px;
+    height: 41px;
+    transform: translateY(-50%);
 }
 
 .how-to-use-page .how-to-use-slide-visual {
     position: absolute;
     bottom: 36px;
     display: block;
-    width: min(320px, 48dvh, calc(50% - 54px));
+    width: var(--thumbnail-width);
     aspect-ratio: 16 / 9;
     border-radius: 8px;
-}
-
-.how-to-use-page .how-to-use-slide-visual--placeholder {
-    left: 60px;
-    background: #d9d9d9;
 }
 
 .how-to-use-page .how-to-use-slide-visual--thumbnail {

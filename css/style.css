@@ -66,6 +66,115 @@ h1 {
     text-decoration: none;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.download-button {
+    position: relative;
+    display: grid;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border: 2px solid var(--ink-color);
+    border-radius: 14px;
+    background: var(--ink-color);
+    cursor: pointer;
+    transition: background-color 180ms ease, border-color 180ms ease;
+}
+
+.download-button-icon {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    transition: opacity 180ms ease;
+}
+
+.download-button-icon--black {
+    opacity: 0;
+}
+
+.download-button:is(:hover, :focus-visible) {
+    border-color: #f1f1f1;
+    background: #f6f6f6;
+}
+
+.download-button:is(:hover, :focus-visible) .download-button-icon--white {
+    opacity: 0;
+}
+
+.download-button:is(:hover, :focus-visible) .download-button-icon--black {
+    opacity: 1;
+}
+
+.download-button:focus-visible {
+    outline: 2px solid var(--ink-color);
+    outline-offset: 3px;
+}
+
+.postcard-preview-dialog {
+    width: min(820px, calc(100vw - 96px), calc(150dvh - 144px));
+    max-width: none;
+    max-height: none;
+    margin: auto;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    outline: none;
+}
+
+.postcard-preview-dialog::backdrop {
+    background: rgba(255, 255, 255, 0.68);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.postcard-preview-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #fff;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.16);
+}
+
+.postcard-debug-download {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 16px);
+    width: 136px;
+    padding: 11px 8px;
+    border: 2px solid var(--ink-color);
+    border-radius: 14px;
+    background: var(--ink-color);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transform: translateY(-50%);
+    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.postcard-debug-download:hover:not(:disabled) {
+    border-color: #f1f1f1;
+    background: #f6f6f6;
+    color: var(--ink-color);
+}
+
+.postcard-debug-download:focus-visible {
+    outline: 2px solid var(--ink-color);
+    outline-offset: 3px;
+}
+
+.postcard-debug-download:disabled {
+    cursor: wait;
+    opacity: 0.5;
+}
+
 .top-right-buttons {
     position: relative;
     display: grid;
@@ -73,7 +182,7 @@ h1 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: center;
     overflow: hidden;
-    border-radius: 15px;
+    border-radius: 14px;
     background: #f6f6f6;
     border: 2px solid #f1f1f1;
 }
