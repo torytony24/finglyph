@@ -10,11 +10,13 @@ const FRAME_COUNT = 5;
 // the A/fist pose unmistakable before the hand starts opening.
 const FRAME_DURATIONS = [260, 120, 100, 120];
 const CONTOUR_POINTS = 256;
+const SILHOUETTE_SCALE = 3;
 const DETAIL_SOURCE_END = 0.5;
 const DETAIL_TARGET_START = 0.5;
 const PASTE_STAGGER = 45;
 
 const templateCache = new Map();
+const silhouetteCache = new Map();
 const geometryCache = new Map();
 const slotTimers = new WeakMap();
 
@@ -54,10 +56,34 @@ function signUrl(character) {
 }
 
 function prepareSvgTemplate(svg) {
+    // An inline SVG <style> is global once the SVG is mounted in the page.
+    // Illustrator reuses .cls-1, .cls-2, etc. for different colors in each
+    // file, so freeze each file's rules onto its own elements and remove them.
+    svg.querySelectorAll('style').forEach(styleElement => {
+        const rules = [...(styleElement.sheet?.cssRules || [])];
+        if (!rules.length && styleElement.textContent.trim()) {
+            throw new Error('Could not read the hand-sign SVG styles.');
+        }
+        rules.forEach(rule => {
+            if (rule.type !== CSSRule.STYLE_RULE) return;
+            svg.querySelectorAll(rule.selectorText).forEach(element => {
+                for (const property of rule.style) {
+                    element.style.setProperty(
+                        property,
+                        rule.style.getPropertyValue(property),
+                        rule.style.getPropertyPriority(property),
+                    );
+                }
+            });
+        });
+        styleElement.remove();
+    });
+
     if (svg.querySelector('[data-role="outer"]')) return;
 
     // Illustrator exports contain ordinary SVG shapes instead of the older
-    // data-role markers. Use their largest filled shape as the morph contour.
+    // data-role markers. Use the largest filled shape to identify the body
+    // color; the morph contour is traced from the entire rendered sign.
     const shapes = [...svg.querySelectorAll('path, polygon, polyline')]
         .filter(shape => !shape.closest('defs'));
     const largest = shapes.reduce((best, shape) => {
@@ -106,7 +132,12 @@ async function loadSvgTemplate(character) {
             const svg = document.importNode(parsed.documentElement, true);
             svg.setAttribute('aria-hidden', 'true');
             staging.appendChild(svg);
-            prepareSvgTemplate(svg);
+            try {
+                prepareSvgTemplate(svg);
+            } catch (error) {
+                svg.remove();
+                throw error;
+            }
             return svg;
         })().catch(error => {
             templateCache.delete(cacheKey);
@@ -137,20 +168,105 @@ function readViewBox(svg) {
     };
 }
 
-function samplePath(path, count) {
-    if (typeof path.getTotalLength !== 'function') {
-        throw new Error('data-role="outer" must be a path element.');
+function sampleContour(points, count) {
+    const lengths = [0];
+    for (let index = 0; index < points.length; index += 1) {
+        const start = points[index];
+        const end = points[(index + 1) % points.length];
+        lengths.push(lengths[index] + Math.hypot(end.x - start.x, end.y - start.y));
     }
 
-    const length = path.getTotalLength();
-    const points = [];
-
+    const result = [];
+    let segment = 0;
     for (let index = 0; index < count; index += 1) {
-        const point = path.getPointAtLength(length * index / count);
-        points.push({ x: point.x, y: point.y });
+        const distance = lengths[points.length] * index / count;
+        while (segment < points.length - 1 && lengths[segment + 1] < distance) {
+            segment += 1;
+        }
+        const fraction = (distance - lengths[segment])
+            / (lengths[segment + 1] - lengths[segment] || 1);
+        const start = points[segment];
+        const end = points[(segment + 1) % points.length];
+        result.push({ x: lerp(start.x, end.x, fraction), y: lerp(start.y, end.y, fraction) });
+    }
+    return result;
+}
+
+function traceSilhouette(imageData, width, height) {
+    const alpha = imageData.data;
+    const visible = (x, y) => x >= 0 && y >= 0 && x < width && y < height
+        && alpha[(y * width + x) * 4 + 3] > 16;
+    const outgoing = new Map();
+    const edges = [];
+    const addEdge = (x1, y1, x2, y2, direction) => {
+        const edge = { x1, y1, x2, y2, direction, visited: false };
+        edges.push(edge);
+        const key = y1 * (width + 1) + x1;
+        if (!outgoing.has(key)) outgoing.set(key, []);
+        outgoing.get(key).push(edge);
+    };
+
+    for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+            if (!visible(x, y)) continue;
+            if (!visible(x, y - 1)) addEdge(x, y, x + 1, y, 0);
+            if (!visible(x + 1, y)) addEdge(x + 1, y, x + 1, y + 1, 1);
+            if (!visible(x, y + 1)) addEdge(x + 1, y + 1, x, y + 1, 2);
+            if (!visible(x - 1, y)) addEdge(x, y + 1, x, y, 3);
+        }
     }
 
-    return points;
+    let best = [];
+    let bestArea = 0;
+    for (const first of edges) {
+        if (first.visited) continue;
+        const contour = [];
+        let current = first;
+        let area = 0;
+        while (current && !current.visited) {
+            current.visited = true;
+            contour.push({ x: current.x1, y: current.y1 });
+            area += current.x1 * current.y2 - current.x2 * current.y1;
+            const next = outgoing.get(current.y2 * (width + 1) + current.x2) || [];
+            current = next.filter(edge => !edge.visited)
+                .sort((a, b) => ((a.direction - current.direction + 4) % 4)
+                    - ((b.direction - current.direction + 4) % 4))[0];
+        }
+        if (area > bestArea) {
+            bestArea = area;
+            best = contour;
+        }
+    }
+    if (best.length < 3) throw new Error('Could not trace the hand-sign silhouette.');
+    return best;
+}
+
+async function loadSilhouette(character, viewBox) {
+    const key = character.toUpperCase();
+    if (!silhouetteCache.has(key)) {
+        const request = (async () => {
+            const image = new Image();
+            image.src = signUrl(key);
+            await image.decode();
+
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.ceil(viewBox.width * SILHOUETTE_SCALE);
+            canvas.height = Math.ceil(viewBox.height * SILHOUETTE_SCALE);
+            const context = canvas.getContext('2d', { willReadFrequently: true });
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+            const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+            const outline = traceSilhouette(pixels, canvas.width, canvas.height);
+            return sampleContour(outline.map(point => ({
+                x: viewBox.x + point.x * viewBox.width / canvas.width,
+                y: viewBox.y + point.y * viewBox.height / canvas.height,
+            })), CONTOUR_POINTS);
+        })().catch(error => {
+            silhouetteCache.delete(key);
+            throw error;
+        });
+        silhouetteCache.set(key, request);
+    }
+    return silhouetteCache.get(key);
 }
 
 function contourError(source, target) {
@@ -241,8 +357,12 @@ async function prepareMorphGeometry(sourceCharacter, targetCharacter) {
                 );
             }
 
-            const sourcePoints = samplePath(sourceOuter, CONTOUR_POINTS);
-            const sampledTarget = samplePath(targetOuter, CONTOUR_POINTS);
+            const sourceViewBox = readViewBox(sourceSvg);
+            const targetViewBox = readViewBox(targetSvg);
+            const [sourcePoints, sampledTarget] = await Promise.all([
+                loadSilhouette(sourceKey, sourceViewBox),
+                loadSilhouette(targetKey, targetViewBox),
+            ]);
 
             return {
                 sourceSvg,
@@ -251,8 +371,8 @@ async function prepareMorphGeometry(sourceCharacter, targetCharacter) {
                 targetUrl: signUrl(targetKey),
                 sourcePlain: sourceSvg.dataset.plainSignAsset === 'true',
                 targetPlain: targetSvg.dataset.plainSignAsset === 'true',
-                sourceViewBox: readViewBox(sourceSvg),
-                targetViewBox: readViewBox(targetSvg),
+                sourceViewBox,
+                targetViewBox,
                 sourcePoints,
                 targetPoints: alignContours(sourcePoints, sampledTarget),
                 fill: sourceOuter.getAttribute('fill') || getComputedStyle(sourceOuter).fill || '#e9fea3',
@@ -370,6 +490,28 @@ function createSvgSnapshot(url, viewBox, outputSvg) {
     return image;
 }
 
+function createPlainDetails(sourceSvg, viewBox, outputSvg) {
+    const details = sourceSvg.cloneNode(true);
+    const originalShapes = [...sourceSvg.querySelectorAll('path, polygon, polyline, rect, circle, ellipse')];
+    const copiedShapes = [...details.querySelectorAll('path, polygon, polyline, rect, circle, ellipse')];
+    const bodyFill = getComputedStyle(sourceSvg.querySelector('[data-role="outer"]')).fill;
+
+    originalShapes.forEach((shape, index) => {
+        if (getComputedStyle(shape).fill === bodyFill) copiedShapes[index].remove();
+    });
+
+    details.removeAttribute('id');
+    details.removeAttribute('data-plain-sign-asset');
+    details.setAttribute('x', viewBox.x);
+    details.setAttribute('y', viewBox.y);
+    details.setAttribute('width', viewBox.width);
+    details.setAttribute('height', viewBox.height);
+    details.setAttribute('viewBox', viewBox.value);
+    details.setAttribute('pointer-events', 'none');
+    outputSvg.appendChild(details);
+    return details;
+}
+
 function createMorphState(geometry, character, slot) {
     const outputSvg = document.createElementNS(SVG_NS, 'svg');
     outputSvg.classList.add('morph-glyph');
@@ -398,6 +540,12 @@ function createMorphState(geometry, character, slot) {
         defs,
         'target',
     );
+    const sourcePlainDetails = geometry.sourcePlain
+        ? createPlainDetails(geometry.sourceSvg, geometry.sourceViewBox, outputSvg)
+        : null;
+    const targetPlainDetails = geometry.targetPlain
+        ? createPlainDetails(geometry.targetSvg, geometry.targetViewBox, outputSvg)
+        : null;
     const sourceSnapshot = geometry.sourcePlain
         ? createSvgSnapshot(geometry.sourceUrl, geometry.sourceViewBox, outputSvg)
         : null;
@@ -411,6 +559,8 @@ function createMorphState(geometry, character, slot) {
         outerOutput,
         sourceDetails,
         targetDetails,
+        sourcePlainDetails,
+        targetPlainDetails,
         sourceSnapshot,
         targetSnapshot,
     };
@@ -425,6 +575,12 @@ function renderFrame(state, frameIndex) {
     state.outerOutput.setAttribute('d', pointsToPath(points));
     renderDetails(state.sourceDetails, detailSourceAmount(time));
     renderDetails(state.targetDetails, detailTargetAmount(time));
+    if (state.sourcePlainDetails) {
+        state.sourcePlainDetails.setAttribute('opacity', detailSourceAmount(time));
+    }
+    if (state.targetPlainDetails) {
+        state.targetPlainDetails.setAttribute('opacity', smoothstep((time - 0.15) / 0.6));
+    }
     if (state.sourceSnapshot) state.sourceSnapshot.setAttribute('opacity', detailSourceAmount(time));
     if (state.targetSnapshot) state.targetSnapshot.setAttribute('opacity', detailTargetAmount(time));
 }
