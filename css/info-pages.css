@@ -15,7 +15,7 @@
 }
 
 .behind-page .behind-title {
-    margin-bottom: 48px;
+    margin-bottom: 24px;
     font-size: 36px;
     font-weight: 500;
     line-height: 1.2;
@@ -25,74 +25,175 @@
     margin-top: 96px;
 }
 
+.behind-page .behind-chapter:first-child {
+    margin-top: 0;
+}
+
 .behind-page .behind-topic + .behind-topic {
-    margin-top: 64px;
+    margin-top: 72px;
 }
 
-.behind-page .behind-topic .behind-section + .behind-section {
-    margin-top: 20px;
-}
-
-.behind-page .behind-section[lang="ko"] {
-    font-family: 'Inter', 'Noto Sans KR', sans-serif;
-}
-
-.behind-page .behind-section[lang="en"] {
-    font-family: 'Inter', Arial, Helvetica, sans-serif;
-}
-
-.behind-page .behind-section[lang="ko"] [lang="en"] {
-    font-family: 'Inter', Arial, Helvetica, sans-serif;
-}
-
-.behind-page .behind-section h3 {
-    margin-bottom: 14px;
+.behind-page .behind-topic-title {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 28px;
     font-size: 18px;
     font-weight: 500;
     line-height: 1.45;
 }
 
-.behind-page .behind-section p {
+.behind-page .behind-topic [lang="ko"] {
+    font-family: 'Inter', 'Noto Sans KR', sans-serif;
+}
+
+.behind-page .behind-topic [lang="en"] {
+    font-family: 'Inter', Arial, Helvetica, sans-serif;
+}
+
+.behind-page .behind-translation-pair {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.behind-page .behind-translation-pair + .behind-translation-pair {
+    margin-top: 28px;
+}
+
+.behind-page .behind-translation-pair p {
     font-size: 12px;
     font-weight: 300;
-    line-height: 1.65;
+    line-height: 1.75;
 }
 
-.behind-page .behind-development-topic + .behind-development-topic {
-    margin-top: 64px;
-}
-
-.behind-page .behind-development-topic p + p {
-    margin-top: 16px;
+.behind-page .behind-media-placeholder {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    margin: 32px 0;
+    background: #d9d9d9;
 }
 
 .behind-page .behind-illustration {
     display: block;
-    max-width: 100%;
+    width: 100%;
     height: auto;
-    margin: 20px 0;
+    margin: 32px 0;
+}
+
+.behind-page .behind-illustration--ek {
+    width: 60%;
+    margin-right: auto;
+    margin-left: auto;
 }
 
 .behind-page .behind-equation {
-    overflow-x: auto;
-    margin: 20px 0;
-    font-size: 16px;
+    margin: 32px 0;
+    overflow: hidden;
+    font-size: 14px;
+    text-align: center;
 }
 
-.behind-page .behind-equation math {
-    width: max-content;
+.behind-page .behind-equation .katex-display {
+    margin: 0;
 }
 
-.behind-page .behind-info-list {
-    padding-left: 18px;
-    font-family: 'Inter', 'Noto Sans KR', sans-serif;
-    font-size: 12px;
+.behind-page .behind-profiles {
+    display: grid;
+    gap: 48px;
+}
+
+.behind-page .behind-profile {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+}
+
+.behind-page .behind-profile-photo {
+    flex: 0 0 144px;
+    width: 144px;
+    height: 144px;
+    border-radius: 50%;
+    background: var(--fill-color);
+    object-fit: cover;
+}
+
+.behind-page .behind-profile-photo--design {
+    object-position: 78% center;
+}
+
+.behind-page .behind-profile-photo--development {
+    object-position: 73% center;
+}
+
+.behind-page .behind-profile-details h3 {
+    margin-bottom: 16px;
+    font-size: 26px;
+    font-weight: 400;
+    line-height: 1.2;
+}
+
+.behind-page .behind-profile-details {
+    min-width: 0;
+}
+
+.behind-page .behind-profile-link {
+    display: inline-flex;
+    min-height: 32px;
+    align-items: center;
+    gap: 10px;
+    color: #8a8a8a;
+    font-size: 14px;
     font-weight: 300;
-    line-height: 1.65;
+    text-decoration: none;
+    transition: color 180ms ease;
 }
 
-.behind-page .behind-info-list li + li {
-    margin-top: 10px;
+.behind-page .behind-profile-link img {
+    width: 24px;
+    height: 24px;
+    transform: translateY(2px);
+}
+
+.behind-page .behind-profile-link:is(:hover, :focus-visible) {
+    color: var(--ink-color);
+    text-decoration: underline;
+    text-decoration-color: var(--bg-color);
+    text-underline-offset: 4px;
+}
+
+.behind-page .behind-profile-link:focus-visible {
+    outline: 2px solid var(--ink-color);
+    outline-offset: 4px;
+}
+
+.behind-page .behind-profile-handle:not(:empty)::before {
+    content: '@';
+}
+
+.behind-page .behind-profile-handle {
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+    .behind-page .behind-copy {
+        width: calc(100% - 40px);
+        margin-left: 20px;
+    }
+
+    .behind-page .behind-profile {
+        gap: 20px;
+    }
+
+    .behind-page .behind-profile-photo {
+        flex-basis: 112px;
+        width: 112px;
+        height: 112px;
+    }
+
+    .behind-page .behind-profile-details h3 {
+        font-size: 22px;
+    }
 }
 
 .how-to-use-page .info-content {
