@@ -23,7 +23,7 @@ const FINAL_CARD_SETTLE_DELAY_MS = CARD_ENTRANCE_MS + FINAL_CARD_FLOAT_MS;
 const FINAL_LAYOUT_MS = 1300;
 const FINAL_WORD_START_DELAY_MS = FINAL_LAYOUT_MS + 100;
 const FINAL_WORD_LETTER_INTERVAL_MS = 700;
-const WORD_CARD_START_DELAY_MS = 900;
+const WORD_CARD_START_DELAY_MS = 500;
 const WORD_CARD_MORPH_MS = 1100;
 const GREETING_REVEAL_MS = 600;
 const GREETING_HOLD_MS = 1100;
@@ -311,12 +311,12 @@ function morphRowsIntoWordCards() {
         });
 
         const backgroundAnimation = background.animate([
-            { transform: 'scaleX(0)', opacity: 0, offset: 0 },
-            { transform: 'scaleX(0)', opacity: 0, offset: 0.42 },
-            { transform: 'scaleX(1)', opacity: 1, offset: 1 },
-        ], { duration: WORD_CARD_MORPH_MS, easing: 'cubic-bezier(.45,0,.25,1)', fill: 'both' });
+            { opacity: 0, offset: 0 },
+            { opacity: 0, offset: 0.28, easing: 'ease-in-out' },
+            { opacity: 1, offset: 0.72 },
+            { opacity: 1, offset: 1 },
+        ], { duration: WORD_CARD_MORPH_MS, fill: 'both' });
         backgroundAnimation.onfinish = () => {
-            background.style.transform = 'scaleX(1)';
             background.style.opacity = '1';
             wordCard.classList.remove('is-morphing');
             backgroundAnimation.cancel();
