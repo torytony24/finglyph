@@ -1,5 +1,5 @@
-﻿// Add LaTeX inside the Behind article with $...$ or $$...$$ delimiters.
-renderMathInElement(document.querySelector('.behind-copy'), {
+﻿// Render equations across the Behind slides.
+renderMathInElement(document.querySelector('.behind-page .info-content'), {
     delimiters: [
         { left: '$$', right: '$$', display: true },
         { left: '$', right: '$', display: false }
