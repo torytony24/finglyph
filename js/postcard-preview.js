@@ -1,7 +1,6 @@
 const postcardButton = document.querySelector('.download-button');
 const postcardDialog = document.getElementById('postcard-preview-dialog');
 const postcardCanvas = document.getElementById('postcard-preview-canvas');
-const postcardDebugDownload = document.getElementById('postcard-debug-download');
 const postcardContext = postcardCanvas.getContext('2d');
 const signImageCache = new Map();
 let renderVersion = 0;
@@ -35,7 +34,7 @@ function getTallLayout(wordCount) {
 }
 
 function updatePreviewSize() {
-    const availableWidth = Math.max(1, window.innerWidth - 2 * (136 + 16 + 16));
+    const availableWidth = Math.max(1, window.innerWidth - 96);
     const availableHeight = Math.max(1, window.innerHeight - 96);
     const previewHeight = Math.min(availableHeight, 820 * 1200 / postcardCanvas.width);
     const fittingWidth = previewHeight * postcardCanvas.width / postcardCanvas.height;
@@ -196,8 +195,8 @@ function drawPostcardContent(words, imageGroups = null) {
 
 async function renderPostcard() {
     const currentRender = ++renderVersion;
-    postcardDebugDownload.disabled = true;
-    await document.fonts.load(`100 ${CAPTION_FONT_SIZE}px Raleway`);
+    await document.fonts.load(`100 ${CAPTION_FONT_SIZE}px Raleway`).catch(() => []);
+    if (currentRender !== renderVersion) return false;
     const wordCards = document.querySelectorAll('#output .word-container');
     const validWords = [...wordCards]
         .map(card => (card.getAttribute('aria-label') || '').replace(/[^a-zA-Z]/g, ''))
@@ -207,27 +206,21 @@ async function renderPostcard() {
     updatePreviewSize();
     drawBlankPostcard();
     if (!validWords.length) {
-        postcardDebugDownload.disabled = false;
-        return;
+        return true;
     }
 
     drawPostcardContent(validWords);
     const imageGroups = await Promise.all(validWords.map(word => Promise.all([...word].map(loadSignImage))));
-    if (currentRender === renderVersion) {
-        drawPostcardContent(validWords, imageGroups);
-        postcardDebugDownload.disabled = false;
-    }
+    if (currentRender !== renderVersion) return false;
+    drawPostcardContent(validWords, imageGroups);
+    return true;
 }
 
 drawBlankPostcard();
 
-postcardButton.addEventListener('click', () => {
-    renderPostcard();
+postcardButton.addEventListener('click', async () => {
     if (!postcardDialog.open) postcardDialog.showModal();
-});
-
-postcardDebugDownload.addEventListener('click', () => {
-    if (postcardDebugDownload.disabled) return;
+    if (!await renderPostcard()) return;
 
     postcardCanvas.toBlob(blob => {
         if (!blob) return;

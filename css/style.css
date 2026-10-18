@@ -141,40 +141,6 @@ h1 {
     box-shadow: 0 18px 60px rgba(0, 0, 0, 0.16);
 }
 
-.postcard-debug-download {
-    position: absolute;
-    top: 50%;
-    left: calc(100% + 16px);
-    width: 136px;
-    padding: 11px 8px;
-    border: 2px solid var(--ink-color);
-    border-radius: 14px;
-    background: var(--ink-color);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 500;
-    white-space: nowrap;
-    cursor: pointer;
-    transform: translateY(-50%);
-    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
-}
-
-.postcard-debug-download:hover:not(:disabled) {
-    border-color: #f1f1f1;
-    background: #f6f6f6;
-    color: var(--ink-color);
-}
-
-.postcard-debug-download:focus-visible {
-    outline: 2px solid var(--ink-color);
-    outline-offset: 3px;
-}
-
-.postcard-debug-download:disabled {
-    cursor: wait;
-    opacity: 0.5;
-}
-
 .top-right-buttons {
     position: relative;
     display: grid;

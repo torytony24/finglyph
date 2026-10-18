@@ -6,6 +6,7 @@
     <script src="js/mobile-access.js"></script>
     <script src="js/nav-menu.js" async></script>
     <title>Behind - Finglyph</title>
+    <link rel="icon" type="image/svg+xml" href="assets/tutorial-hand-placeholder.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&amp;family=Noto+Sans+KR:wght@300;500&amp;display=swap" rel="stylesheet" />
@@ -43,99 +44,26 @@
                     </div>
                 </div>
             </section>
-            <section class="behind-slide behind-slide--process" id="behind-slide-2" aria-label="Slide 2">
+            <section class="behind-slide behind-slide--right behind-slide--location" aria-label="Slide 2">
                 <div class="behind-slide-content">
-                    <div class="behind-process-left">
-                        <div class="behind-translation-pair">
-                            <p lang="en">The real challenge began when we tried to turn sign language words into graphics. The meaning of sign language depends not only on the handshape, but also on the location on the body where the sign is performed. We wanted to remove the face to maintain a minimal visual language, but it was difficult to communicate the spatial context of signs that use reference points such as the nose or cheek. Drawing the entire face made the graphics feel crude and overly illustrative, while removing it altogether meant losing essential information. It was an unavoidable dilemma.</p>
-                            <p lang="ko">진짜 고민은 수어 단어를 그래픽화하는 과정에서 시작됐다. 수어는 손모양(수형)뿐 아니라 어느 신체 부위(수위)에서 행해지는가에 따라 뜻이 완전히 달라진다. 미니멀한 무드를 위해 얼굴을 지우고 싶었지만, 코나 뺨을 쓰는 단어의 위치 맥락을 표현할 방법이 막막했다. 얼굴을 다 그리자니 캐릭터 일러스트처럼 조잡해지고, 다 빼자니 정보가 누락되는 지독한 딜레마였다.</p>
-                        </div>
-                        <div aria-label="Image placeholder" class="behind-media-placeholder" data-image-slot="1" role="img"></div>
-                    </div>
-                    <div class="behind-process-right">
-                        <div class="behind-translation-pair">
-                            <p lang="en">During the early brainstorming process, we considered compromises such as placing text guides above the input field—“This sign is referenced to the nose,” for example—or displaying Hover tooltips. The idea seemed to offer a temporary solution, but it exposed a more fundamental contradiction. Wasn’t the essence of the project to create a pure sign language font that Deaf people could understand intuitively, without relying on textual assistance? This direction was ultimately removed from the final concept, and we returned to the challenge of developing visual rules that did not depend on text.</p>
-                            <p lang="ko">초기 브레인스토밍 과정에서는 입력창 상단에 “이 단어는 코를 기준한 수어입니다” 같은 텍스트 가이드나 호버(Hover) 툴팁을 띄우자는 타협안도 나왔다. 잠시 숨통이 트이는 듯했으나 근본적인 균열을 마주했다. ‘텍스트 도움 없이 농인이 직관적으로 이해하는 순수 수어 폰트’가 프로젝트의 본질 아니었나? 이후 이 방향은 최종 기획에서 제외하고, 텍스트에 의존하지 않는 시각적 규칙을 만드는 방향으로 다시 고민을 이어갔다.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            <section class="behind-slide behind-slide--with-image behind-slide--bottom" id="behind-slide-3" aria-label="Slide 3">
-                <div class="behind-slide-content">
-                    <div class="behind-slide-text">
-                        <div class="behind-translation-pair">
-                            <p lang="en">Instead of drawing the face itself, we introduced a form of spatial reinterpretation in which the square container became a frame representing the upper body. An invisible three-part grid divided the box into upper, middle, and lower regions: the upper area represented the face, the middle represented the chest, and the lower represented the abdomen. This became an unspoken spatial convention. For signs that required specific reference points such as the nose or chest, minimal geometric symbols—such as dots or vertical lines—were integrated into the hand graphics. The onboarding intro also removed text entirely. Instead, a five-second motion graphic shows an upper-body pictogram transforming into three spatial boxes, allowing users to intuitively learn the spatial rules before entering the editor.</p>
-                            <p lang="ko">얼굴을 직접 그리는 대신, 정사각형 박스 자체를 하나의 상반신 프레임으로 치환하는 ‘공간의 재해석’을 도입했다. 박스 내부에 보이지 않는 미세한 ‘상·중·하 3등분 그리드 시스템’을 구현해 상단은 안면부, 중앙은 가슴, 하단은 배 영역을 뜻하는 무언의 약속을 세웠다. 코나 가슴 등의 기준점이 꼭 필요한 단어에는 미니멀한 점이나 세로선 같은 추상적 기하학 심볼을 손 그래픽과 융합시켰다. 온보딩(인트로) 화면 역시 텍스트를 지우고, 상반신 픽토그램이 세 개의 박스 공간으로 치환되는 5초의 모션 그래픽을 배치해 진입 전 사용자가 공간의 규칙을 자연스럽게 학습하도록 설계했다.</p>
-                        </div>
-                    </div>
-                    <div class="behind-media-placeholder behind-media-placeholder--large" data-image-slot="7" role="img" aria-label="Large image placeholder"></div>
-                </div>
-            </section>
-            <section class="behind-slide behind-slide--bottom" aria-label="Slide 4">
-                <div class="behind-slide-content">
-                    <h2 class="behind-topic-title">
-                        <span lang="en">Stripping Away Non-Manual Elements</span>
-                        <span lang="ko">비수지 수어 비우기</span>
-                    </h2>
+                    <img class="behind-location-image" src="assets/behind/location.png" alt="Sign language gestures shown at two locations near the face" width="703" height="313" />
                     <div class="behind-translation-pair">
-                        <p lang="en">Recognizing dynamic sign language expressions such as “hello,” whose meanings depend on movement, location, and direction, as well as accounting for grammatical differences between sign language and spoken language, proved technically difficult to implement. We eventually shifted toward a system based on the 26 letters of the English alphabet using fingerspelling, for which open-source resources were available. But this shift introduced another dilemma.</p>
-                        <p lang="ko">‘안녕하세요’처럼 움직임, 위치, 방향에 따라 의미가 변하는 동적 수어 인식과 음성 언어와의 문법 차이는 기술적으로 구현 난이도가 높았다. 결국 오픈소스를 활용할 수 있는 ‘영어 알파벳 26자(지문자)’ 시스템으로 방향을 전환했다. 하지만 방향을 전환하면서 또 다른 딜레마를 마주했다.</p>
+                        <p lang="en">We first chose to remove the location and facial expressions, one of the non-manual signals in sign language. Facial expressions play an important grammatical role in sign language, but this project is not an educational sign language dictionary. It is a typographic editor focused on refining visual aesthetics. Just as a Korean typeface does not attempt to encode the speaker’s facial expression, we deliberately stripped away Tone and focused instead on the visual form and structural rules of the Character itself.</p>
+                        <p lang="ko">우리는 수어의 수위와 비수지 신호인 표정’을 우선 비워내기로 했다. 수어에서 표정은 주요 문법 요소를 차지하지만, 본 프로젝트는 수어 교육 사전이 아닌 조형미를 정제하는 문자 에디터다. 한글 폰트를 설계할 때 말하는 이의 표정까지 담지 않듯, 말투(Tone)는 과감히 비우고 문자(Character) 자체의 조형성과 구조적 규칙에 집중했다.</p>
                     </div>
                 </div>
             </section>
-            <section class="behind-slide behind-slide--questions" aria-label="Slide 5">
-                <div class="behind-slide-content">
-                    <div class="behind-question-grid">
-                        <div class="behind-translation-pair">
-                            <p lang="en">“Isn’t this simply an English font wearing the shell of sign language?”</p>
-                            <p lang="ko">“수어의 껍데기를 빌린 영어 폰트 아닌가?”</p>
-                        </div>
-                        <div class="behind-translation-pair">
-                            <p lang="en">“Wouldn’t the abstracted handshapes completely destroy legibility?”</p>
-                            <p lang="ko">“추상화된 손 모양 때문에 가독성이 전멸하지 않을까?”</p>
-                        </div>
-                        <div class="behind-translation-pair">
-                            <p lang="en">“Wouldn’t the experience end after a single use?”</p>
-                            <p lang="ko">“일회성 경험에 그치지 않을까?”</p>
-                        </div>
-                    </div>
-                    <div class="behind-question-note">
-<div class="behind-translation-pair">
-                        <p lang="en">In particular, we began to question whether preserving every element of sign language would actually blur the project’s direction if fingerspelling were to be treated as a typographic system of its own.</p>
-                        <p lang="ko">특히 지문자를 하나의 문자 시스템으로 바라보기 위해서는 수어의 모든 요소를 그대로 가져오는 것이 오히려 프로젝트의 방향을 흐릴 수 있다는 생각이 들었다.</p>
-                    </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="behind-slide behind-slide--centered" aria-label="Slide 6">
+            <section class="behind-slide behind-slide--signs" aria-label="Slide 3">
                 <div class="behind-slide-content">
                     <div class="behind-translation-pair">
-                        <p lang="en">So which elements of sign language should remain, and which should be stripped away?</p>
-                        <p lang="ko">그렇다면 수어의 어떤 요소를 남기고, 어떤 요소를 비워내야 할까?</p>
-                    </div>
-                </div>
-            </section>
-            <section class="behind-slide behind-slide--split-story" aria-label="Slide 7">
-                <div class="behind-slide-content">
-                    <div class="behind-story-left">
-                        <div class="behind-translation-pair">
-                        <p lang="en">Starting from this question, we first chose to remove facial expressions, one of the non-manual signals in sign language. Facial expressions play an important grammatical role in sign language, but this project is not an educational sign language dictionary. It is a typographic editor focused on refining visual aesthetics. Just as a Korean typeface does not attempt to encode the speaker’s facial expression, we deliberately stripped away Tone and focused instead on the visual form and structural rules of the Character itself.</p>
-                        <p lang="ko">그 질문에서 출발해, 우리는 수어의 비수지 신호인 ‘표정’을 우선 비워내기로 했다. 수어에서 표정은 주요 문법 요소를 차지하지만, 본 프로젝트는 수어 교육 사전이 아닌 조형미를 정제하는 문자 에디터다. 한글 폰트를 설계할 때 말하는 이의 표정까지 담지 않듯, 말투(Tone)는 과감히 비우고 문자(Character) 자체의 조형성과 구조적 규칙에 집중했다.</p>
-                    </div>
-                        <div class="behind-media-placeholder behind-media-placeholder--small" data-image-slot="8" role="img" aria-label="Image placeholder"></div>
-                    </div>
-                    <div class="behind-story-right">
-                        <div class="behind-media-placeholder behind-media-placeholder--large" data-image-slot="9" role="img" aria-label="Image placeholder"></div>
-                        <div class="behind-translation-pair">
                         <p lang="en">However, because sign language is a visual-spatial language, completely excluding facial and bodily movement was never intended to be the final direction. Instead, we left these elements open as possibilities for future expansion. One approach is to connect emotion-related words with graphic stickers and automatically match emotional expressions according to the meaning of the word. For example, entering a word associated with sadness could automatically attach a graphic sticker with a sad expression. In this way, the system could visually expand the expressive and emotional qualities of sign language while preserving the visual form of the characters themselves. For now, we focused on improving the formal refinement of fingerspelling and expanded accessibility by supporting keyboard input in parallel. This shift was intended to reduce the psychological distance users may feel toward fingerspelling and encourage natural learning through use.</p>
                         <p lang="ko">하지만 수어가 시각·공간적 언어라는 점에서 얼굴과 몸의 움직임을 완전히 배제하는 것이 최종적인 방향은 아니었다. 오히려 이를 이후의 확장 가능성으로 남겨두었다. 감정을 표현할 수 있는 단어를 그래픽 스티커와 연결하고, 단어의 의미에 따라 감정 표현이 자동으로 매치되도록 하는 방식이다. 예를 들어 슬픔과 관련된 단어를 입력하면 슬픈 표정의 그래픽 스티커가 자동으로 부착되는 식으로, 문자 자체의 조형성을 유지하면서도 수어가 가진 표정과 감정의 요소를 시각적으로 확장할 예정이다. 현재는 지문자를 중심으로 조형적 완성도를 높이고, 키보드 입력을 병행해 접근성을 확장했다. 이를 통해 지문자에 대한 심리적 거리를 좁히고 자연스럽게 학습을 유도할 수 있도록 기획을 변경했다.</p>
                     </div>
-                    </div>
+                    <img class="behind-signs-image" src="assets/behind/signs.png" alt="Five colorful fingerspelling hand illustrations" width="586" height="326" />
                 </div>
             </section>
 
-            <section class="behind-slide behind-slide--bottom" aria-label="Slide 8">
+            <section class="behind-slide behind-slide--bottom" aria-label="Slide 4">
                 <div class="behind-slide-content">
                     <h2 class="behind-topic-title">
                         <span lang="en">Interactive Tutorial and User Experience</span>
@@ -147,7 +75,7 @@
                     </div>
                 </div>
             </section>
-            <section class="behind-slide behind-slide--with-image behind-slide--centered-row" aria-label="Slide 9">
+            <section class="behind-slide behind-slide--with-image behind-slide--centered-row" aria-label="Slide 5">
                 <div class="behind-slide-content">
                     <div class="behind-slide-text">
                         <div class="behind-translation-pair">
@@ -159,7 +87,7 @@
                 </div>
             </section>
 
-            <section class="behind-slide behind-slide--with-image behind-slide--image-left behind-slide--centered-row" aria-label="Slide 10">
+            <section class="behind-slide behind-slide--with-image behind-slide--image-left behind-slide--centered-row" aria-label="Slide 6">
                 <div class="behind-slide-content">
                     <div class="behind-media-placeholder behind-media-placeholder--medium" data-image-slot="11" role="img" aria-label="Image placeholder"></div>
                     <div class="behind-slide-text">
@@ -170,7 +98,7 @@
                     </div>
                 </div>
             </section>
-            <section class="behind-slide behind-slide--with-image behind-slide--centered-row" aria-label="Slide 11">
+            <section class="behind-slide behind-slide--with-image behind-slide--centered-row" aria-label="Slide 7">
                 <div class="behind-slide-content">
                     <div class="behind-slide-text">
                     <div class="behind-translation-pair">
@@ -182,7 +110,7 @@
                 </div>
             </section>
 
-            <section class="behind-slide behind-slide--bottom behind-slide--morph-layout" aria-label="Slide 12">
+            <section class="behind-slide behind-slide--bottom behind-slide--morph-layout" aria-label="Slide 8">
                 <div class="behind-slide-content">
                     <div class="behind-morph-copy">
                         <h2 class="behind-topic-title">
@@ -198,7 +126,7 @@
                 </div>
             </section>
 
-            <section class="behind-slide behind-slide--with-image behind-slide--image-left behind-slide--centered-row" aria-label="Slide 13">
+            <section class="behind-slide behind-slide--with-image behind-slide--image-left behind-slide--centered-row" aria-label="Slide 9">
                 <div class="behind-slide-content">
                     <img alt="Point correspondences used to compare two hand graphic contours" class="behind-illustration behind-illustration--ek" data-image-slot="5" height="1067" loading="lazy" src="assets/behind/ek.png" width="1841"/>
                     <div class="behind-slide-text">
@@ -209,23 +137,23 @@
                     </div>
                 </div>
             </section>
-            <section class="behind-slide behind-slide--equation-pair" aria-label="Slide 14">
+            <section class="behind-slide behind-slide--equation-pair" aria-label="Slide 10">
                 <div class="behind-slide-content">
+                    <div class="behind-equation">$$ \begin{gathered}
+E(k) = \frac{1}{N} \sum_{i=0}^{N-1} \left[ (x_i - x_{(i+k) \bmod N})^2 + (y_i - y_{(i+k) \bmod N})^2 \right] \\[1.5em]
+k^* = \arg\min_{k} E(k)
+\end{gathered} $$</div>
                     <div class="behind-slide-text">
                         <div class="behind-translation-pair">
                         <p lang="en">Because a closed contour has no fixed starting point, the same finger position might correspond to point 0 in one graphic and point 80 in another. If corresponding points are too far apart, the intermediate shapes become distorted. To correct this, we used mean squared error (MSE). We evaluated the error across every possible cyclic shift, selected the shift that minimized the error, and adjusted the starting point accordingly.</p>
                         <p lang="ko">닫힌 외곽선은 시작점이 임의적이다. 따라서 같은 손가락 위치라도 한 그래픽에서는 0번 점, 다른 그래픽에서는 80번 점일 수 있다. 대응점들 사이의 거리가 멀 경우 중간 단계 모양이 이상해진다. 이를 보정하기 위해 최소 평균제곱오차(MSE)를 사용했다. 모든 순환 이동량에 대해 오차값이 최소가 되는 값을 찾고 해당 값으로 시작점을 보정한다.</p>
                     </div>
                     </div>
-                    <div class="behind-equation">$$ \begin{gathered}
-E(k) = \frac{1}{N} \sum_{i=0}^{N-1} \left[ (x_i - x_{(i+k) \bmod N})^2 + (y_i - y_{(i+k) \bmod N})^2 \right] \\[1.5em]
-k^* = \arg\min_{k} E(k)
-\end{gathered} $$</div>
                 </div>
             </section>
 
 
-            <section class="behind-slide" aria-label="Slide 15">
+            <section class="behind-slide behind-slide--bottom" aria-label="Slide 11">
                 <div class="behind-slide-content">
                     <h2 class="behind-topic-title">
                         <span lang="en">Preserving the Visual Aesthetics of the Graphics</span>
@@ -237,31 +165,22 @@ k^* = \arg\min_{k} E(k)
                     </div>
                 </div>
             </section>
-            <section class="behind-slide" aria-label="Slide 16">
+            <section class="behind-slide behind-slide--with-image behind-slide--image-left behind-slide--centered-row behind-slide--morph-details" aria-label="Slide 12">
                 <div class="behind-slide-content">
-                    <div class="behind-translation-pair">
-                        <p lang="en">The morphing process also needed to preserve the visual aesthetics of the hand. To maintain the original graphic style throughout the intermediate stages, we applied interpolation methods together with animation techniques commonly used in games.</p>
-                        <p lang="ko">또한 변형 과정에서 손의 조형미를 흐트려서는 안 된다. 중간 과정에서도 기존의 그래픽 스타일을 유지할 수 있는 보간법 및 게임에서 사용되는 애니메이션 기법을 사용했다.</p>
+                    <div class="behind-media-placeholder behind-media-placeholder--medium" role="img" aria-label="Image placeholder"></div>
+                    <div class="behind-slide-text behind-morph-detail-copy">
+                        <div class="behind-translation-pair">
+                            <p lang="en">The morphing process also needed to preserve the visual aesthetics of the hand. To maintain the original graphic style throughout the intermediate stages, we applied interpolation methods together with animation techniques commonly used in games.</p>
+                            <p lang="ko">또한 변형 과정에서 손의 조형미를 흐트려서는 안 된다. 중간 과정에서도 기존의 그래픽 스타일을 유지할 수 있는 보간법 및 게임에서 사용되는 애니메이션 기법을 사용했다.</p>
+                        </div>
+                        <div class="behind-translation-pair">
+                            <p lang="en">Intermediate points during the transition are calculated using linear interpolation (lerp) between the starting and target points. For smoother motion, the linear interpolation parameter is transformed using a cubic function over time, known as smoothstep. Because the velocity approaches zero at both the beginning and the end of the transition, the graphic avoids the impression of suddenly starting or stopping.</p>
+                            <p lang="ko">변화 과정에서의 중간 점은 시작점과 목표점 사이의 선형 보간(lerp)으로 계산한다. 더 부드러운 애니메이션을 위해 선형 보간 값을 시간에 따른 3차 함수(smoothstep)로 계산했다. 초반과 끝부분의 속도가 0에 가까워지므로 형태가 갑자기 움직이거나 멈추는 느낌을 줄였다.</p>
+                        </div>
                     </div>
                 </div>
             </section>
-            <section class="behind-slide" aria-label="Slide 17">
-                <div class="behind-slide-content">
-                    <div class="behind-translation-pair">
-                        <p lang="en">Intermediate points during the transition are calculated using linear interpolation (lerp) between the starting and target points. For smoother motion, the linear interpolation parameter is transformed using a cubic function over time, known as smoothstep. Because the velocity approaches zero at both the beginning and the end of the transition, the graphic avoids the impression of suddenly starting or stopping.</p>
-                        <p lang="ko">변화 과정에서의 중간 점은 시작점과 목표점 사이의 선형 보간(lerp)으로 계산한다. 더 부드러운 애니메이션을 위해 선형 보간 값을 시간에 따른 3차 함수(smoothstep)로 계산했다. 초반과 끝부분의 속도가 0에 가까워지므로 형태가 갑자기 움직이거나 멈추는 느낌을 줄였다.</p>
-                    </div>
-                </div>
-            </section>
-            <section class="behind-slide" aria-label="Slide 18">
-                <div class="behind-slide-content">
-                    <div class="behind-translation-pair">
-                        <p lang="en">The graphics also contain smaller elements such as fingernails and lines. These are handled separately from the contour morph: they disappear during the earlier part of the transition and reappear toward the end. For fingernails, the horizontal and vertical dimensions are compared, and the shape contracts along its longer axis. For lines, the length of each segment is gradually reduced.</p>
-                        <p lang="ko">손톱이나 선 같은 세부 요소들도 있다. 이는 외곽선 변화와 별도로 앞부분에서 사라지고 뒷부분에서 나타나도록 처리했다. 손톱의 경우 가로 길이와 세로 길이를 비교하여 더 긴 축 방향으로 줄어들게 했고, 선의 경우 각 조각의 길이가 줄어들게 했다.</p>
-                    </div>
-                </div>
-            </section>
-            <section class="behind-slide" aria-label="Slide 19">
+            <section class="behind-slide behind-slide--bottom" aria-label="Slide 13">
                 <div class="behind-slide-content">
                     <h2 class="behind-topic-title">
                         <span lang="en">Sign Language Recognition Algorithm</span>
@@ -273,44 +192,29 @@ k^* = \arg\min_{k} E(k)
                     </div>
                 </div>
             </section>
-            <section class="behind-slide" aria-label="Slide 20">
+            <section class="behind-slide behind-slide--filter-comparison" aria-label="Slide 14">
                 <div class="behind-slide-content">
-                    <div class="behind-translation-pair">
+                    <div class="behind-media-placeholder behind-filter-placeholder" role="img" aria-label="Image placeholder"></div>
+                    <div class="behind-translation-pair behind-filter-copy--left">
                         <p lang="en">To improve inference accuracy, the detected joint landmarks undergo a filtering process. We first applied an exponential moving average (EMA) filter, which reduces high-frequency noise by computing a weighted combination of the new observation and the previous filtered value at every frame. However, this introduced noticeable latency when the hand moved quickly.</p>
                         <p lang="ko">추론의 정확도를 높이기 위해 인식한 관절 랜드마크는 필터링 과정을 거친다. 먼저 고주파 잡음을 줄이기 위해 매 프레임에서 새 관측값과 이전 필터값을 가중합하는 지수이동평균(EMA) 필터를 적용했다. 하지만 손이 빠르게 움직일 때 지연이 일어난다는 점에서 한계가 있었다.</p>
                     </div>
-                </div>
-            </section>
-            <section class="behind-slide" aria-label="Slide 21">
-                <div class="behind-slide-content">
-                    <div class="behind-translation-pair">
+                    <div class="behind-translation-pair behind-filter-copy--right">
                         <p lang="en">To address this limitation, we replaced it with a One Euro Filter. The current velocity is first approximated from positional changes between frames, and the velocity itself is smoothed using an EMA. The cutoff threshold is then increased as the movement becomes faster. As a result, the filter is applied less aggressively during rapid hand movements, reducing latency. When the hand remains still, jitter is strongly suppressed; when the user moves their hand to change the sign, the system prioritizes responsiveness.</p>
                         <p lang="ko">이를 보완하기 위해 One Euro Filter로 개선했다. 프레임 사이 위치 변화를 통해 현재 속도를 근사하고, 속도를 EMA로 부드럽게 만든다. 그 뒤 움직임이 빠를 수록 임계값을 높인다. 이렇게 하면 손이 빠르게 움직일 때 필터를 덜 강하게 적용해 지연을 줄일 수 있다. 손을 가만히 들고 있을 때는 흔들림을 강하게 제어하고, 수화를 바꾸기 위해 손을 움직일 때는 지연을 줄인다.</p>
                     </div>
                 </div>
             </section>
-            <section class="behind-slide" aria-label="Slide 22">
+            <section class="behind-slide behind-slide--pipeline" aria-label="Slide 15">
                 <div class="behind-slide-content">
                     <div class="behind-translation-pair">
                         <p lang="en">The machine learning pipeline is structured as follows. The model is a classifier, and all parameters throughout the pipeline use pretrained values. For each landmark, the x- and y-coordinates are read to form a 42-dimensional feature vector. In the first layer of the MLP, the input is normalized using Batch Normalization. The 42-dimensional input is then passed through four fully connected (FC) layers to produce 26-dimensional logits. Mish is used as the activation function for each layer. Softmax is then applied to the output logits to convert them into a probability distribution. The alphabet letter corresponding to the class with the highest probability becomes the final prediction.</p>
                         <p lang="ko">머신러닝 파이프라인은 다음과 같다. 구조는 분류기(classifier)이며 모든 과정에서 파라미터들은 사전학습된 값을 사용했다. 먼저 각 점마다 x, y좌표를 읽어 총 42차원의 feature vector를 입력으로 가진다. MLP의 첫 layer에서 Batch Normalization을 통해 정규화를 거친다. 이후 42차원으로부터 4개의 FC layer를 거쳐 26차원의 logits를 내보낸다. 각 layer의 activation function은 Mish를 사용했다. 이후 출력된 logit에 softmax를 적용해 확률 분포로 변환한다. 가장 확률이 높은 클래스가 가리키는 알파벳이 된다.</p>
                     </div>
+                    <img alt="Hand landmark filtering and alphabet classification pipeline" class="behind-illustration behind-pipeline-image" data-image-slot="6" height="774" loading="lazy" src="assets/behind/ml.png" width="2046"/>
                 </div>
             </section>
-            <section class="behind-slide" aria-label="Slide 23">
-                <div class="behind-slide-content">
-                    <img alt="Hand landmark filtering and alphabet classification pipeline" class="behind-illustration" data-image-slot="6" height="774" loading="lazy" src="assets/behind/ml.png" width="2046"/>
-                </div>
-            </section>
-            <section class="behind-slide" aria-label="Slide 24">
-                <div class="behind-slide-content">
-                    <div class="behind-translation-pair">
-                        <p lang="en">In addition, we applied several techniques to ensure that user gestures are mapped to the intended alphabet letters as accurately as possible. These mechanisms help prevent unintended multiple inputs or incorrect characters from being entered, resulting in a smoother overall user experience.</p>
-                        <p lang="ko">이외에도 사용자의 동작이 정확한 알파벳으로 대응될 수 있도록 다양한 기법들을 적용하였고, 의도치 않게 여러 글자가 입력되거나 다른 글자가 입력되는 현상을 방지해 매끄러운 사용자 경험을 전달한다.</p>
-                    </div>
-                </div>
-            </section>
-            <section class="behind-slide behind-slide--info" aria-label="Slide 25">
+            <section class="behind-slide behind-slide--info" aria-label="Slide 16">
                 <div class="behind-slide-content">
                     <h2 class="behind-topic-title">
                         Info
