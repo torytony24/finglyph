@@ -1,10 +1,8 @@
-import { classifyLandmarks, loadClassifier } from './landmark-classifier.js';
+import { loadClassifier } from './landmark-classifier.js';
 import { resolveInferenceConfig } from './asl-inference-config.js';
 import { LandmarkTemporalFilter, ProbabilityTemporalStabilizer } from './temporal-stabilization.js';
-import { applyTemperature, energyScore, loadConfidenceArtifacts } from './confidence-postprocessing.js';
-import { measureSThumbDepth } from './s-depth-disambiguation.js';
-import { measureURFingerCrossing } from './ur-crossing-disambiguation.js';
-import { chooseRecognitionCandidate } from './recognition-decision.js';
+import { loadConfidenceArtifacts } from './confidence-postprocessing.js';
+import { recognizeFilteredLandmarks } from './recognition-decision.js';
 import { loadHandLandmarkerModel } from './tutorial-model-cache.js';
 
 const config = resolveInferenceConfig(window.FinglyphAslConfig);
@@ -472,14 +470,13 @@ function frame() {
             lastHandAt = now;
             const filteredLandmarks = landmarkFilter.update(rawLandmarks, now);
             draw(filteredLandmarks);
-            const rawPrediction = classifyLandmarks(filteredLandmarks, classifier);
-            const sDepth = measureSThumbDepth(filteredLandmarks, config.sDepth.minThumbDepthRatio);
-            const urCrossing = measureURFingerCrossing(filteredLandmarks);
-            const calibratedPrediction = applyTemperature(rawPrediction, temperature);
-            if (calibratedPrediction) calibratedPrediction.energy = energyScore(calibratedPrediction.logits, temperature);
-            const stabilizedPrediction = probabilityStabilizer.update(calibratedPrediction);
-            if (stabilizedPrediction && calibratedPrediction) stabilizedPrediction.energy = calibratedPrediction.energy;
-            const candidate = chooseRecognitionCandidate(rawPrediction, sDepth, urCrossing, stabilizedPrediction, confidencePolicy);
+            const candidate = recognizeFilteredLandmarks(filteredLandmarks, {
+                classifier,
+                probabilityStabilizer,
+                minThumbDepthRatio: config.sDepth.minThumbDepthRatio,
+                temperature,
+                confidencePolicy,
+            });
             handlePrediction(candidate, now);
         } else if (now - lastHandAt >= RELEASE_DELAY_MS) {
             draw(null);

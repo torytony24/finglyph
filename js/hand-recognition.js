@@ -1,10 +1,8 @@
-import { classifyLandmarks, loadClassifier } from './landmark-classifier.js';
+import { loadClassifier } from './landmark-classifier.js';
 import { resolveInferenceConfig } from './asl-inference-config.js';
 import { LandmarkTemporalFilter, ProbabilityTemporalStabilizer } from './temporal-stabilization.js';
-import { applyTemperature, energyScore, loadConfidenceArtifacts } from './confidence-postprocessing.js';
-import { measureSThumbDepth } from './s-depth-disambiguation.js';
-import { measureURFingerCrossing } from './ur-crossing-disambiguation.js';
-import { chooseRecognitionCandidate } from './recognition-decision.js';
+import { loadConfidenceArtifacts } from './confidence-postprocessing.js';
+import { recognizeFilteredLandmarks } from './recognition-decision.js';
 
 const config = resolveInferenceConfig(window.FinglyphAslConfig);
 const HOLD_DURATION_MS = config.temporal.debounceMs;
@@ -166,14 +164,13 @@ async function recognizeFrame(video) {
             lastHandSeenAt = now;
             const filteredLandmarks = landmarkFilter.update(rawLandmarks, now);
             drawLandmarks(filteredLandmarks);
-            const rawPrediction = classifyLandmarks(filteredLandmarks, classifierModel);
-            const sDepth = measureSThumbDepth(filteredLandmarks, config.sDepth.minThumbDepthRatio);
-            const urCrossing = measureURFingerCrossing(filteredLandmarks);
-            const calibratedPrediction = applyTemperature(rawPrediction, temperature);
-            if (calibratedPrediction) calibratedPrediction.energy = energyScore(calibratedPrediction.logits, temperature);
-            const stabilizedPrediction = probabilityStabilizer.update(calibratedPrediction);
-            if (stabilizedPrediction && calibratedPrediction) stabilizedPrediction.energy = calibratedPrediction.energy;
-            const candidate = chooseRecognitionCandidate(rawPrediction, sDepth, urCrossing, stabilizedPrediction, confidencePolicy);
+            const candidate = recognizeFilteredLandmarks(filteredLandmarks, {
+                classifier: classifierModel,
+                probabilityStabilizer,
+                minThumbDepthRatio: config.sDepth.minThumbDepthRatio,
+                temperature,
+                confidencePolicy,
+            });
             updateCandidate(candidate, now);
         } else if (now - lastHandSeenAt >= RELEASE_DELAY_MS) {
             drawLandmarks(null);

@@ -55,6 +55,17 @@ function signUrl(character) {
     return `${SIGNS_PATH}/${encodeURIComponent(character.toUpperCase())}.svg`;
 }
 
+function getCachedPromise(cache, key, load) {
+    if (!cache.has(key)) {
+        const request = load().catch(error => {
+            cache.delete(key);
+            throw error;
+        });
+        cache.set(key, request);
+    }
+    return cache.get(key);
+}
+
 function prepareSvgTemplate(svg) {
     // An inline SVG <style> is global once the SVG is mounted in the page.
     // Illustrator reuses .cls-1, .cls-2, etc. for different colors in each
@@ -113,41 +124,32 @@ function prepareSvgTemplate(svg) {
 async function loadSvgTemplate(character) {
     const cacheKey = character.toUpperCase();
 
-    if (!templateCache.has(cacheKey)) {
-        const request = (async () => {
-            const url = signUrl(cacheKey);
-            const response = await fetch(url);
+    return getCachedPromise(templateCache, cacheKey, async () => {
+        const url = signUrl(cacheKey);
+        const response = await fetch(url);
 
-            if (!response.ok) {
-                throw new Error(`Could not find SVG file: ${cacheKey}.svg`);
-            }
+        if (!response.ok) {
+            throw new Error(`Could not find SVG file: ${cacheKey}.svg`);
+        }
 
-            const svgText = await response.text();
-            const parsed = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+        const svgText = await response.text();
+        const parsed = new DOMParser().parseFromString(svgText, 'image/svg+xml');
 
-            if (parsed.querySelector('parsererror')) {
-                throw new Error(`Could not read SVG: ${cacheKey}.svg`);
-            }
+        if (parsed.querySelector('parsererror')) {
+            throw new Error(`Could not read SVG: ${cacheKey}.svg`);
+        }
 
-            const svg = document.importNode(parsed.documentElement, true);
-            svg.setAttribute('aria-hidden', 'true');
-            staging.appendChild(svg);
-            try {
-                prepareSvgTemplate(svg);
-            } catch (error) {
-                svg.remove();
-                throw error;
-            }
-            return svg;
-        })().catch(error => {
-            templateCache.delete(cacheKey);
+        const svg = document.importNode(parsed.documentElement, true);
+        svg.setAttribute('aria-hidden', 'true');
+        staging.appendChild(svg);
+        try {
+            prepareSvgTemplate(svg);
+        } catch (error) {
+            svg.remove();
             throw error;
-        });
-
-        templateCache.set(cacheKey, request);
-    }
-
-    return templateCache.get(cacheKey);
+        }
+        return svg;
+    });
 }
 
 function readViewBox(svg) {
@@ -243,30 +245,23 @@ function traceSilhouette(imageData, width, height) {
 
 async function loadSilhouette(character, viewBox) {
     const key = character.toUpperCase();
-    if (!silhouetteCache.has(key)) {
-        const request = (async () => {
-            const image = new Image();
-            image.src = signUrl(key);
-            await image.decode();
+    return getCachedPromise(silhouetteCache, key, async () => {
+        const image = new Image();
+        image.src = signUrl(key);
+        await image.decode();
 
-            const canvas = document.createElement('canvas');
-            canvas.width = Math.ceil(viewBox.width * SILHOUETTE_SCALE);
-            canvas.height = Math.ceil(viewBox.height * SILHOUETTE_SCALE);
-            const context = canvas.getContext('2d', { willReadFrequently: true });
-            context.drawImage(image, 0, 0, canvas.width, canvas.height);
-            const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
-            const outline = traceSilhouette(pixels, canvas.width, canvas.height);
-            return sampleContour(outline.map(point => ({
-                x: viewBox.x + point.x * viewBox.width / canvas.width,
-                y: viewBox.y + point.y * viewBox.height / canvas.height,
-            })), CONTOUR_POINTS);
-        })().catch(error => {
-            silhouetteCache.delete(key);
-            throw error;
-        });
-        silhouetteCache.set(key, request);
-    }
-    return silhouetteCache.get(key);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.ceil(viewBox.width * SILHOUETTE_SCALE);
+        canvas.height = Math.ceil(viewBox.height * SILHOUETTE_SCALE);
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+        const outline = traceSilhouette(pixels, canvas.width, canvas.height);
+        return sampleContour(outline.map(point => ({
+            x: viewBox.x + point.x * viewBox.width / canvas.width,
+            y: viewBox.y + point.y * viewBox.height / canvas.height,
+        })), CONTOUR_POINTS);
+    });
 }
 
 function contourError(source, target) {
@@ -341,51 +336,42 @@ async function prepareMorphGeometry(sourceCharacter, targetCharacter) {
     const targetKey = targetCharacter.toUpperCase();
     const transitionKey = `${sourceKey}→${targetKey}`;
 
-    if (!geometryCache.has(transitionKey)) {
-        const request = (async () => {
-            const [sourceSvg, targetSvg] = await Promise.all([
-                loadSvgTemplate(sourceKey),
-                loadSvgTemplate(targetKey),
-            ]);
+    return getCachedPromise(geometryCache, transitionKey, async () => {
+        const [sourceSvg, targetSvg] = await Promise.all([
+            loadSvgTemplate(sourceKey),
+            loadSvgTemplate(targetKey),
+        ]);
 
-            const sourceOuter = sourceSvg.querySelector('[data-role="outer"]');
-            const targetOuter = targetSvg.querySelector('[data-role="outer"]');
+        const sourceOuter = sourceSvg.querySelector('[data-role="outer"]');
+        const targetOuter = targetSvg.querySelector('[data-role="outer"]');
 
-            if (!sourceOuter || !targetOuter) {
-                throw new Error(
-                    `Could not find data-role="outer" in ${sourceKey}.svg or ${targetKey}.svg.`,
-                );
-            }
+        if (!sourceOuter || !targetOuter) {
+            throw new Error(
+                `Could not find data-role="outer" in ${sourceKey}.svg or ${targetKey}.svg.`,
+            );
+        }
 
-            const sourceViewBox = readViewBox(sourceSvg);
-            const targetViewBox = readViewBox(targetSvg);
-            const [sourcePoints, sampledTarget] = await Promise.all([
-                loadSilhouette(sourceKey, sourceViewBox),
-                loadSilhouette(targetKey, targetViewBox),
-            ]);
+        const sourceViewBox = readViewBox(sourceSvg);
+        const targetViewBox = readViewBox(targetSvg);
+        const [sourcePoints, sampledTarget] = await Promise.all([
+            loadSilhouette(sourceKey, sourceViewBox),
+            loadSilhouette(targetKey, targetViewBox),
+        ]);
 
-            return {
-                sourceSvg,
-                targetSvg,
-                sourceUrl: signUrl(sourceKey),
-                targetUrl: signUrl(targetKey),
-                sourcePlain: sourceSvg.dataset.plainSignAsset === 'true',
-                targetPlain: targetSvg.dataset.plainSignAsset === 'true',
-                sourceViewBox,
-                targetViewBox,
-                sourcePoints,
-                targetPoints: alignContours(sourcePoints, sampledTarget),
-                fill: sourceOuter.getAttribute('fill') || getComputedStyle(sourceOuter).fill || '#e9fea3',
-            };
-        })().catch(error => {
-            geometryCache.delete(transitionKey);
-            throw error;
-        });
-
-        geometryCache.set(transitionKey, request);
-    }
-
-    return geometryCache.get(transitionKey);
+        return {
+            sourceSvg,
+            targetSvg,
+            sourceUrl: signUrl(sourceKey),
+            targetUrl: signUrl(targetKey),
+            sourcePlain: sourceSvg.dataset.plainSignAsset === 'true',
+            targetPlain: targetSvg.dataset.plainSignAsset === 'true',
+            sourceViewBox,
+            targetViewBox,
+            sourcePoints,
+            targetPoints: alignContours(sourcePoints, sampledTarget),
+            fill: sourceOuter.getAttribute('fill') || getComputedStyle(sourceOuter).fill || '#e9fea3',
+        };
+    });
 }
 
 function createDetailItem(source, fitGroup, defs, side) {
@@ -933,6 +919,16 @@ function reconcileOutput(words, animateNew) {
     });
 }
 
+function insertTextAtSelection(input, text) {
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    const value = input.value;
+
+    input.value = value.slice(0, start) + text + value.slice(end);
+    input.selectionStart = input.selectionEnd = start + text.length;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 function handleInput(event) {
     const words = parseWords(event.currentTarget.value);
     reconcileOutput(words, true);
@@ -955,20 +951,8 @@ window.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', () => updateCardSizing(currentWords));
     input.addEventListener('keydown', event => {
         if (event.key === 'Enter') {
-            event.preventDefault(); 
-
-            const start = input.selectionStart ?? input.value.length;
-            const end = input.selectionEnd ?? input.value.length;
-            const value = input.value;
-
-            // Insert a space at the cursor position.
-            input.value = value.slice(0, start) + ' ' + value.slice(end);
-
-            // Move the cursor after the inserted space.
-            input.selectionStart = input.selectionEnd = start + 1;
-
-            // Dispatch input so reconcileOutput() updates the output.
-            input.dispatchEvent(new Event('input', { bubbles: true }));
+            event.preventDefault();
+            insertTextAtSelection(input, ' ');
         }
     });
 });
@@ -1033,23 +1017,6 @@ if (textInput) {
 
 
 
-(function initWebcam() {
-    // Webcam ownership is handled by webcam-basic.js.
-    return;
-    const video = document.getElementById('webcam');
-    if (!video) return;
-
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-            .then(stream => {
-                video.srcObject = stream;
-            })
-            .catch(err => {
-                console.warn('Could not access webcam:', err);
-            });
-    }
-})();
-
 // Webcam input uses this bridge so candidate poses reuse the same SVG morph
 // pipeline as keyboard-entered letters.
 let cameraPreviewLetter = null;
@@ -1074,11 +1041,7 @@ window.FinglyphCameraInput = {
 
         if (!/^[A-Z]$/.test(letter) || !input) return;
 
-        const start = input.selectionStart ?? input.value.length;
-        const end = input.selectionEnd ?? input.value.length;
-        input.value = input.value.slice(0, start) + letter.toLowerCase() + input.value.slice(end);
-        input.selectionStart = input.selectionEnd = start + 1;
-        input.dispatchEvent(new Event('input', { bubbles: true }));
+        insertTextAtSelection(input, letter.toLowerCase());
         input.focus({ preventScroll: true });
     },
 };
