@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@150&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/style.css?v=postcard-download-20261018" />
+    <link rel="stylesheet" href="css/style.css?v=ui-refinement-20261104" />
     <link rel="stylesheet" href="css/mobile-unsupported.css" />
 </head>
 <body>
@@ -53,7 +53,7 @@
 
     <div id="morph-staging" aria-hidden="true"></div>
 
-    <aside id="camera-panel" aria-live="polite">
+    <aside id="camera-panel" data-state="off" aria-live="polite">
         <div class="camera-preview">
             <video id="webcam" autoplay playsinline muted></video>
             <canvas id="hand-overlay" aria-hidden="true"></canvas>
@@ -70,7 +70,7 @@
             <span id="camera-glyph" class="glyph-slot camera-glyph" aria-hidden="true"></span>
             <div class="camera-candidate-copy">
                 <strong id="camera-letter" aria-hidden="true"></strong>
-                <span id="camera-status">Start camera to begin.</span>
+                <span id="camera-status"></span>
                 <div class="hold-track" aria-hidden="true">
                     <div id="hold-progress" class="hold-progress"></div>
                 </div>
@@ -83,9 +83,9 @@
     </dialog>
 
     
-    <script src="js/script.js?v=letters-20261006"></script>
+    <script src="js/script.js?v=ui-refinement-20261104"></script>
     <script src="js/postcard-preview.js?v=postcard-auto-download-20261018"></script>
-    <script type="module" src="js/webcam-basic.js"></script>
+    <script type="module" src="js/webcam-basic.js?v=ui-refinement-20261104"></script>
     <script type="module" src="js/hand-recognition.js"></script>
 </body>
 </html>

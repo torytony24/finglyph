@@ -12,6 +12,7 @@
     --fill-color: #f4f4f4;
     --main-header-height: 127px;
     --main-content-top-padding: 24px;
+    --page-gutter: 36px;
 }
 
 body {
@@ -46,7 +47,7 @@ select {
 .top-fixed {
     flex-shrink: 0;
     height: var(--main-header-height);
-    padding: 24px 36px;
+    padding: 24px var(--page-gutter);
     background: var(--primary-color);
     display: flex;           
     justify-content: space-between;  
@@ -232,7 +233,7 @@ h1 {
 .main-scrollable {
     flex: 1;
     overflow: auto;
-    padding: var(--main-content-top-padding) 36px;
+    padding: var(--main-content-top-padding) var(--page-gutter);
     scrollbar-width: none;
     display: flex;
     flex-direction: column;
@@ -305,7 +306,7 @@ h1 {
 
 .bottom-fixed {
     flex-shrink: 0;
-    padding: 36px 36px;
+    padding: 36px var(--page-gutter);
     background: var(--primary-color);
     display: flex;
     align-items: center;
@@ -333,7 +334,7 @@ h1 {
 
 #camera-panel {
     position: fixed;
-    right: 36px;
+    right: var(--page-gutter);
     bottom: 36px;
     z-index: 1000;
     width: 320px;
@@ -341,7 +342,7 @@ h1 {
     border: 1px solid #e5e5e5;
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.96);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 .camera-candidate {
@@ -355,7 +356,7 @@ h1 {
     right: 8px;
     z-index: 2;
     display: inline-flex;
-    min-height: 27px;
+    min-height: 30px;
     align-items: center;
     gap: 5px;
     border: 0;
@@ -364,7 +365,7 @@ h1 {
     background: rgba(22, 22, 22, 0.58);
     color: #fff;
     font: inherit;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 500;
     line-height: 1;
     cursor: pointer;
@@ -454,7 +455,25 @@ h1 {
 .camera-candidate {
     gap: 10px;
     margin-top: 10px;
-    min-height: 64px;
+    min-height: 54px;
+}
+
+#camera-panel[data-state="off"] .camera-candidate {
+    display: none;
+}
+
+.camera-candidate.is-empty {
+    min-height: 0;
+}
+
+#camera-panel[data-state="on"] .camera-candidate {
+    min-height: 54px;
+}
+
+.camera-candidate.is-empty .camera-glyph,
+.camera-candidate.is-empty #camera-letter,
+.camera-candidate.is-empty .hold-track {
+    display: none;
 }
 
 .camera-glyph {
@@ -490,10 +509,10 @@ h1 {
     display: block;
     margin-top: 4px;
     color: #666;
-    font-size: 11px;
-    font-weight: 300;
-    line-height: 1.35;
-    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
 }
 
 .hold-track {
@@ -513,6 +532,10 @@ h1 {
 }
 
 @media (max-width: 767px) {
+    :root {
+        --page-gutter: 16px;
+    }
+
     .top-fixed {
         height: auto;
         padding: 20px 16px 0;

@@ -16,6 +16,7 @@ function clearOverlay() {
 function setToggleState(state, label, { disabled = false, pressed = false } = {}) {
     const button = document.getElementById('camera-toggle');
     button.dataset.state = state;
+    document.getElementById('camera-panel').dataset.state = state;
     button.disabled = disabled;
     button.setAttribute('aria-pressed', String(pressed));
     button.setAttribute('aria-label', label);

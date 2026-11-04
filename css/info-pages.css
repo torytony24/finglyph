@@ -33,7 +33,7 @@
 
 .how-to-use-page .how-to-use-intro-words {
     display: flex;
-    width: calc(100% - 72px);
+    width: calc(100% - 2 * var(--page-gutter));
     flex-direction: column;
     align-items: center;
     gap: clamp(6px, 1.5vh, 16px);
@@ -47,8 +47,8 @@
 
 .how-to-use-page .how-to-use-copy {
     position: absolute;
-    left: 60px;
-    width: min(580px, calc(100% - 96px));
+    left: var(--page-gutter);
+    width: min(580px, calc(100% - 2 * var(--page-gutter)));
     font-size: 14px;
     font-weight: 300;
     line-height: 1.65;
@@ -61,7 +61,7 @@
 
 .how-to-use-page .how-to-use-scroll-cue {
     position: absolute;
-    right: 36px;
+    right: var(--page-gutter);
     bottom: 36px;
     display: block;
     pointer-events: none;
@@ -87,7 +87,7 @@
 .how-to-use-page .how-to-use-30cm {
     position: absolute;
     bottom: 36px;
-    left: 60px;
+    left: var(--page-gutter);
     display: block;
     width: min(410px, calc(100% - var(--thumbnail-width) - 120px));
     height: auto;
@@ -113,7 +113,7 @@
 }
 
 .how-to-use-page .how-to-use-slide-visual--thumbnail {
-    right: 36px;
+    right: var(--page-gutter);
     object-fit: cover;
 }
 
@@ -124,7 +124,7 @@
 .how-to-use-page .how-to-use-download-placeholder {
     position: absolute;
     top: 50%;
-    left: 60px;
+    left: var(--page-gutter);
     width: var(--download-visual-size);
     aspect-ratio: 1;
     border-radius: 8px;
@@ -134,9 +134,19 @@
 
 .how-to-use-page .how-to-use-download-copy {
     top: clamp(44px, 8vh, 88px);
-    right: 60px;
+    right: var(--page-gutter);
     left: auto;
     width: min(580px, calc(100% - var(--download-visual-size) - 160px));
+}
+
+.how-to-use-page .how-to-use-download-placeholder[hidden] {
+    display: none;
+}
+
+.how-to-use-page .how-to-use-slide--download:has(.how-to-use-download-placeholder[hidden]) .how-to-use-download-copy {
+    right: auto;
+    left: var(--page-gutter);
+    width: min(580px, calc(100% - 2 * var(--page-gutter)));
 }
 
 .how-to-use-page .how-to-use-limit-copy {
@@ -167,12 +177,12 @@
 }
 
 .description-page {
-    --sign-grid-row-gap: clamp(48px, 7vw, 112px);
+    --sign-grid-row-gap: clamp(48px, 4vw, 64px);
 }
 
 .description-page .info-content {
     min-height: 0;
-    padding: 48px 60px var(--sign-grid-row-gap) 44px;
+    padding: 48px var(--page-gutter) var(--sign-grid-row-gap);
     scrollbar-width: none;
 }
 
@@ -243,13 +253,13 @@
     }
 }
 
-@media (max-width: 1199px) {
+@media (max-width: 1023px) {
     .description-page {
         --sign-grid-row-gap: 40px;
     }
 
     .description-page .sign-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
     }
 }
 
@@ -277,7 +287,7 @@
     }
 
     .description-page .info-content {
-        padding: 32px 28px var(--sign-grid-row-gap) 20px;
+        padding: 32px var(--page-gutter) var(--sign-grid-row-gap);
     }
 }
 

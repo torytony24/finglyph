@@ -23,7 +23,7 @@
     width: 100%;
     min-height: 100%;
     overflow: visible;
-    padding: clamp(20px, 3dvh, 32px) 36px;
+    padding: clamp(20px, 3dvh, 32px) var(--page-gutter);
     scroll-snap-align: start;
     scroll-snap-stop: always;
     text-align: left;
@@ -301,7 +301,7 @@
     margin: 0 0 clamp(12px, 2dvh, 24px);
     font-size: 18px;
     font-weight: 500;
-    line-height: 33px;
+    line-height: 26px;
     text-align: left;
 }
 
@@ -322,18 +322,22 @@
     margin: 0;
     font-size: 13px;
     font-weight: 300;
-    line-height: 33px;
+    line-height: 22px;
     text-align: left;
 }
 
 .behind-page .behind-translation-pair p + p {
-    margin-top: clamp(8px, 1.3dvh, 14px);
+    margin-top: 18px;
 }
 
 .behind-page .behind-media-placeholder {
     width: 100%;
     aspect-ratio: 16 / 9;
     background: #d9d9d9;
+}
+
+.behind-page .behind-media-placeholder[hidden] {
+    display: none;
 }
 
 .behind-page .behind-illustration {
@@ -450,7 +454,7 @@
     }
 
     .behind-page .behind-slide--process .behind-translation-pair p + p {
-        margin-top: 8px;
+        margin-top: 16px;
     }
 
     .behind-page .behind-process-left {
@@ -520,7 +524,7 @@
 
 @media (max-width: 600px) {
     .behind-page .behind-slide {
-        padding-inline: 20px;
+        padding-inline: var(--page-gutter);
     }
 
     .behind-page .behind-profile {
