@@ -9,17 +9,18 @@ document.addEventListener('click', (event) => {
         return;
     }
 
-    event.preventDefault();
     clearTimeout(navigationTimer);
+    if (event.detail === 0) return;
+    event.preventDefault();
 
     const menu = link.closest('.top-right-buttons');
     const links = [...menu.querySelectorAll('.nav-btn')];
     links.forEach((item) => item.removeAttribute('data-selected'));
     link.setAttribute('data-selected', '');
     menu.setAttribute('data-navigating', '');
-    menu.querySelector('.nav-indicator').style.left = `${links.indexOf(link) * 100 / links.length}%`;
+    menu.querySelector('.nav-indicator').style.transform = `translateX(${links.indexOf(link) * 100}%)`;
 
     navigationTimer = window.setTimeout(() => {
         window.location.assign(link.href);
-    }, 350);
+    }, 200);
 });

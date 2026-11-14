@@ -24,8 +24,8 @@ async function preloadMediaPipe() {
 export async function preloadTutorialResources() {
     const localAssets = [
         'tutorial_page.html',
-        'css/tutorial_page.css?v=ui-refinement-20261104',
-        'js/tutorial-page.js?v=ui-refinement-20261104',
+        'css/tutorial_page.css?v=motion-restored-20261114',
+        'js/tutorial-page.js?v=world-brand-flow-20261114',
         'js/tutorial-model-cache.js',
         'js/temporal-stabilization.js',
         'js/recognition-decision.js',

@@ -11,6 +11,7 @@
     --ink-color: #1f1f1f;
     --fill-color: #f4f4f4;
     --main-header-height: 127px;
+    --header-control-height: 38px;
     --main-content-top-padding: 24px;
     --page-gutter: 36px;
 }
@@ -57,7 +58,7 @@ select {
 h1 {
     font-size: 66px;
     line-height: 79px;
-    font-weight: 400;
+    font-weight: 500;
     color: var(--ink-color); 
     margin: 0;      
 }
@@ -78,7 +79,7 @@ h1 {
     display: grid;
     flex: 0 0 38px;
     width: 38px;
-    height: 38px;
+    height: var(--header-control-height);
     place-items: center;
     border: 2px solid #f1f1f1;
     border-radius: 14px;
@@ -143,9 +144,12 @@ h1 {
 }
 
 .top-right-buttons {
+    --nav-motion-duration: 200ms;
+    --nav-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     position: relative;
     display: grid;
     width: 408px;
+    height: var(--header-control-height);
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: center;
     overflow: hidden;
@@ -167,7 +171,8 @@ h1 {
     opacity: 0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     pointer-events: none;
-    transition: left 350ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease, box-shadow 180ms ease;
+    transform: translateX(0);
+    transition: transform var(--nav-motion-duration) var(--nav-ease-out), opacity 180ms ease, box-shadow 180ms ease;
 }
 
 .top-right-buttons:has(.nav-btn[aria-current="page"]),
@@ -175,20 +180,22 @@ h1 {
     --nav-highlight-opacity: 1;
 }
 
-.top-right-buttons:has(.nav-btn.how-to-use[aria-current="page"]) .nav-indicator { left: 0%; }
-.top-right-buttons:has(.nav-btn.description[aria-current="page"]) .nav-indicator { left: 33.3333%; }
-.top-right-buttons:has(.nav-btn.behind[aria-current="page"]) .nav-indicator { left: 66.6667%; }
+.top-right-buttons:has(.nav-btn.how-to-use[aria-current="page"]) .nav-indicator { transform: translateX(0); }
+.top-right-buttons:has(.nav-btn.description[aria-current="page"]) .nav-indicator { transform: translateX(100%); }
+.top-right-buttons:has(.nav-btn.behind[aria-current="page"]) .nav-indicator { transform: translateX(200%); }
 
 .nav-indicator { opacity: var(--nav-highlight-opacity, 0); }
 .top-right-buttons:has(.nav-btn[aria-current="page"]:is(:hover, :focus-visible)) .nav-indicator {
     box-shadow: 0 3px 9px rgba(0, 0, 0, 0.22);
 }
-.top-right-buttons:not(:has(.nav-btn[aria-current="page"])) .nav-indicator {
+.top-right-buttons:not([data-navigating]):not(:has(.nav-btn[aria-current="page"])) .nav-indicator {
     transition: opacity 160ms ease, box-shadow 180ms ease;
 }
 
 .nav-btn {
     display: inline-flex;
+    height: 100%;
+    align-items: center;
     justify-content: center;
     z-index: 1;
     padding: 8px 12px;
@@ -201,7 +208,7 @@ h1 {
     position: relative;
     text-decoration: none;
     cursor: pointer;
-    transition: color 350ms ease, background-color 180ms ease, opacity 180ms ease;
+    transition: color var(--nav-motion-duration) ease, background-color 180ms ease, opacity 180ms ease;
 }
 
 .nav-btn[aria-current="page"] {
@@ -314,7 +321,7 @@ h1 {
 
 #textInput {
     max-width: 500px;
-    width: auto;
+    width: clamp(200px, 16vw, 420px);
     padding: 8px 16px;
     color: var(--ink-color);
     font-size: 16px;
@@ -524,11 +531,13 @@ h1 {
 }
 
 .hold-progress {
-    width: 0%;
+    width: 100%;
+    transform: scaleX(0);
+    transform-origin: left center;
     height: 100%;
     border-radius: inherit;
     background: var(--bg-color);
-    transition: width 80ms linear;
+    transition: transform 80ms linear;
 }
 
 @media (max-width: 767px) {

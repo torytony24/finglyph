@@ -161,7 +161,7 @@
 }
 
 .how-to-use-page .how-to-use-demo-input {
-    width: auto;
+    width: clamp(200px, 16vw, 420px);
     max-width: min(500px, calc(100vw - 32px));
     padding: 8px 16px;
     border: 0;

@@ -14,7 +14,7 @@ let resourcesReady = false;
 
 const preloading = document.documentElement.classList.contains('is-mobile-device')
     ? Promise.resolve()
-    : import('./tutorial-preload.js?v=ui-refinement-20261104')
+    : import('./tutorial-preload.js?v=world-brand-flow-20261114')
         .then(({ preloadTutorialResources }) => preloadTutorialResources());
 preloading.catch(error => console.warn('Tutorial preload failed:', error)).finally(() => {
     resourcesReady = true;

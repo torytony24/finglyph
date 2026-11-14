@@ -12,15 +12,21 @@ const MEDIAPIPE_MODULE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@$
 const WASM_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${config.model.mediaPipeVersion}/wasm`;
 // Change this list to change both the recognition order and the final arrangement.
 const TARGETS = ['H','E','L','L','O'];
+const SCATTER_WORD = 'WORLD';
 const FINAL_WORD = 'FINGLYPH';
+const BRAND_TRANSITIONS = [...FINAL_WORD].map((letter, index) => [
+    SCATTER_WORD[index] || FINAL_WORD[index - 1], letter,
+]);
 const HOLD_MS = config.temporal.debounceMs;
 const RELEASE_DELAY_MS = config.temporal.releaseDelayMs;
 const CARD_ENTRANCE_MS = 420;
 const FINAL_CARD_FLOAT_MS = 1000;
 const FINAL_CARD_SETTLE_DELAY_MS = CARD_ENTRANCE_MS + FINAL_CARD_FLOAT_MS;
 const FINAL_LAYOUT_MS = 1300;
-const FINAL_WORD_START_DELAY_MS = FINAL_LAYOUT_MS + 100;
-const FINAL_WORD_LETTER_INTERVAL_MS = 700;
+const SCATTER_LETTER_INTERVAL_MS = 700;
+const SCATTER_HOLD_MS = 700;
+const ALIGNED_WORD_HOLD_MS = 650;
+const BRAND_LETTER_STAGGER_MS = 45;
 const WORD_CARD_START_DELAY_MS = 500;
 const WORD_CARD_MORPH_MS = 1100;
 const GREETING_REVEAL_MS = 600;
@@ -50,11 +56,16 @@ const el = {
     inputPreview: document.querySelector('.tutorial-input-preview'),
     guide: document.querySelector('.gesture-guide'), skip: document.querySelector('.skip-link'),
 };
-document.fonts?.ready.then(() => window.FinglyphResizeInputToContent?.(el.inputPreview));
+document.fonts?.ready.then(() => {
+    window.FinglyphResizeInputToContent?.(el.inputPreview);
+    fitPracticeCamera();
+});
 let landmarker, classifier, stream, animationId, targetIndex = 0, candidate, candidateAt = 0, lastHandAt = 0, running = false, starting = false, completed = false, completionPending = false;
 let useCpuLandmarker = false;
 let layoutAnimations = [];
 let previousGestureLetter = 'A';
+let completionStage = 'practice';
+let brandPreparation = Promise.resolve();
 const landmarkFilter = new LandmarkTemporalFilter(config.temporal);
 const probabilityStabilizer = new ProbabilityTemporalStabilizer(config.temporal);
 let confidencePolicy = config.confidence;
@@ -62,7 +73,7 @@ let temperature = 1;
 
 const target = () => TARGETS[targetIndex];
 const status = text => { el.status.textContent = text; };
-const progress = value => { el.progress.style.width = `${Math.max(0, Math.min(1, value)) * 100}%`; };
+const progress = value => { el.progress.style.transform = `scaleX(${Math.max(0, Math.min(1, value))})`; };
 function reset(message) { candidate = null; candidateAt = 0; progress(0); if (message) status(message); }
 function resetTemporalState() { landmarkFilter.reset(); probabilityStabilizer.reset(); }
 
@@ -93,7 +104,31 @@ function updateGuide() {
     el.letter.textContent = target(); el.image.src = `assets/signs/${target()}.svg`;
 }
 
-function floatingPosition(index, count, card) {
+function fitPracticeCamera() {
+    if (completed || completionPending || el.guide.hidden) return;
+
+    // Measure at the authored size before applying a compact-height constraint.
+    el.camera.style.removeProperty('--camera-fit-width');
+    const pageBounds = el.page.getBoundingClientRect();
+    const guideBounds = el.guide.getBoundingClientRect();
+    const gap = parseFloat(getComputedStyle(el.guide).columnGap);
+    const retryStyle = getComputedStyle(el.retry);
+    const retryHeight = el.retry.hidden ? 0 : el.retry.getBoundingClientRect().height
+        + parseFloat(retryStyle.marginTop) + parseFloat(retryStyle.marginBottom);
+    const maxModuleHeight = 2 * (guideBounds.top - pageBounds.top - pageBounds.height / 2 - gap);
+    const maxFrameHeight = Math.max(0, maxModuleHeight - retryHeight);
+    el.camera.style.setProperty('--camera-fit-width', `${maxFrameHeight * 16 / 10}px`);
+}
+
+function mainLayoutMetrics() {
+    const style = getComputedStyle(el.page);
+    return {
+        gutter: parseFloat(style.getPropertyValue('--main-gutter')),
+        headerTop: parseFloat(style.getPropertyValue('--main-header-top')),
+    };
+}
+
+function floatingPosition(index, card) {
     const page = el.page.getBoundingClientRect();
     const camera = el.camera.getBoundingClientRect();
     const guide = el.guide.getBoundingClientRect();
@@ -125,8 +160,34 @@ function floatingPosition(index, count, card) {
         };
     }
 
-    const angle = (-Math.PI / 2) + ((index - preset.length) / Math.max(1, count - preset.length)) * Math.PI * 2;
-    return { x: 0.5 + Math.cos(angle) * 0.34, y: 0.5 + Math.sin(angle) * 0.31 };
+    // Fill the remaining open space around the camera, keeping the five
+    // recognized signs in their original positions.
+    const occupied = preset.map(position => ({
+        left: Math.min(Math.max(position.left, 24), Math.max(24, width - cardWidth - 24)),
+        top: Math.min(Math.max(position.top, 24), Math.max(24, height - cardHeight - 24)),
+    }));
+    const candidates = [];
+    const step = Math.max(16, Math.floor(cardWidth / 3));
+    for (let top = 24; top <= height - cardHeight - 24; top += step) {
+        for (let left = 24; left <= width - cardWidth - 24; left += step) {
+            if (left < cameraRight + 24 && left + cardWidth > cameraLeft - 24
+                && top < camera.bottom - page.top + 24 && top + cardHeight > camera.top - page.top - 24) continue;
+            candidates.push({ left, top });
+        }
+    }
+    while (occupied.length <= index) {
+        let best = candidates[0] || { left: 24, top: 24 };
+        let bestClearance = -Infinity;
+        candidates.forEach(position => {
+            const clearance = Math.min(...occupied.map(other => Math.max(
+                Math.abs(position.left - other.left) - cardWidth,
+                Math.abs(position.top - other.top) - cardHeight,
+            )));
+            if (clearance > bestClearance) { best = position; bestClearance = clearance; }
+        });
+        occupied.push(best);
+    }
+    return { x: occupied[index].left / width, y: occupied[index].top / height };
 }
 
 function positionCard(card, position) {
@@ -135,7 +196,8 @@ function positionCard(card, position) {
 }
 
 function finalCardPosition(row, column) {
-    const availableWidth = Math.max(0, el.page.clientWidth - 72);
+    const { gutter } = mainLayoutMetrics();
+    const availableWidth = Math.max(0, el.page.clientWidth - gutter * 2);
     const gap = 12;
     // Fit the eight-sign row once so every individual glyph stays the same size
     // through floating, alignment, and reveal; word-card morphing handles the shrink.
@@ -149,13 +211,13 @@ function finalCardPosition(row, column) {
     const rowGap = Math.min(24, Math.max(12, window.innerHeight * 0.022));
 
     return {
-        left: 36 + column * (cardSize + gap),
+        left: gutter + column * (cardSize + gap),
         top: 24 + row * (cardSize + rowGap),
         cardSize,
     };
 }
 
-function addGesture(letter, { row = 0, column = targetIndex, settle = false } = {}) {
+function addGesture(letter, { row = 0, column = targetIndex, settle = false, source = previousGestureLetter, delay = 0 } = {}) {
     const card = document.createElement('div'); card.className = 'gesture-card';
     card.setAttribute('role', 'img'); card.setAttribute('aria-label', `${letter} hand sign`);
     card.dataset.layoutRow = String(row);
@@ -165,7 +227,7 @@ function addGesture(letter, { row = 0, column = targetIndex, settle = false } = 
     content.append(glyph); card.append(content); el.found.append(card);
     const position = finalCardPosition(row, column);
     card.style.setProperty('--gesture-size', `${position.cardSize}px`);
-    window.FinglyphGlyphMorph?.renderTransition(glyph, previousGestureLetter, letter);
+    window.FinglyphGlyphMorph?.renderTransition(glyph, source, letter, { delay });
     previousGestureLetter = letter;
     if (settle) {
         card.style.setProperty('--settled-size', `${position.cardSize}px`);
@@ -173,36 +235,99 @@ function addGesture(letter, { row = 0, column = targetIndex, settle = false } = 
         card.style.left = `${position.left}px`;
         card.style.top = `${position.top}px`;
     } else {
-        positionCard(card, floatingPosition(targetIndex, TARGETS.length, card));
-        window.setTimeout(() => card.classList.add('is-floating'), CARD_ENTRANCE_MS);
+        positionCard(card, floatingPosition(row * TARGETS.length + column, card));
+        window.setTimeout(() => {
+            if (!card.classList.contains('is-settling')) card.classList.add('is-floating');
+        }, CARD_ENTRANCE_MS);
     }
 
     return card;
 }
 
-function revealFinalWord(index = 0) {
-    if (!completed || el.found.classList.contains('is-word-output') || index >= FINAL_WORD.length) return;
-    if (!el.found.querySelector(`.gesture-card[data-layout-row="1"][data-layout-column="${index}"]`)) {
-        addGesture(FINAL_WORD[index], { row: 1, column: index, settle: true });
-    }
-    if (index + 1 < FINAL_WORD.length) {
-        window.setTimeout(() => revealFinalWord(index + 1), FINAL_WORD_LETTER_INTERVAL_MS);
+function revealScatteredWord(index = 0) {
+    if (completionStage !== 'scattering' || index >= SCATTER_WORD.length) return;
+    addGesture(SCATTER_WORD[index], { row: 1, column: index });
+    if (index + 1 < SCATTER_WORD.length) {
+        window.setTimeout(() => revealScatteredWord(index + 1), SCATTER_LETTER_INTERVAL_MS);
     } else {
-        waitForSignMorphs();
+        waitForGestureAnimations(() => window.setTimeout(alignWordRows, SCATTER_HOLD_MS));
     }
 }
 
-function waitForSignMorphs() {
+function waitForGestureAnimations(onComplete) {
     if (el.found.classList.contains('is-word-output')) return;
-    if (el.found.querySelector('.gesture-card .glyph-slot.is-morphing')) {
-        window.setTimeout(waitForSignMorphs, 100);
+    if (layoutAnimations.some(animation => animation.pending || animation.playState === 'running')
+        || el.found.querySelector('.gesture-card .glyph-slot.is-loading, .gesture-card .glyph-slot.is-morphing')) {
+        window.setTimeout(() => waitForGestureAnimations(onComplete), 100);
         return;
     }
-    window.setTimeout(morphRowsIntoWordCards, WORD_CARD_START_DELAY_MS);
+    onComplete();
+}
+
+function alignWordRows() {
+    if (completionStage !== 'scattering') return;
+    completionStage = 'aligning';
+    // Prepare one batch while WORLD moves into place, before replacing any
+    // visible sign. Optional warm-up failures retain normal hydration fallback.
+    brandPreparation = Promise.resolve(window.FinglyphGlyphMorph?.prepareTransitions?.(BRAND_TRANSITIONS))
+        .catch(() => {});
+    hideCameraForCompletion();
+    [...el.found.querySelectorAll('.gesture-card')].forEach(stopFloating);
+    finalLayout();
+    waitForGestureAnimations(() => window.setTimeout(morphWorldIntoBrand, ALIGNED_WORD_HOLD_MS));
+}
+
+async function morphWorldIntoBrand() {
+    if (completionStage !== 'aligning') return;
+    await brandPreparation;
+    if (completionStage !== 'aligning') return;
+    completionStage = 'brand';
+    const cards = [...el.found.querySelectorAll('.gesture-card[data-layout-row="1"]')]
+        .sort((first, second) => Number(first.dataset.layoutColumn) - Number(second.dataset.layoutColumn));
+    const reveals = [];
+    BRAND_TRANSITIONS.forEach(([source, letter], index) => {
+        const delay = index * BRAND_LETTER_STAGGER_MS;
+        if (cards[index]) {
+            cards[index].setAttribute('aria-label', `${letter} hand sign`);
+            window.FinglyphGlyphMorph?.renderTransition(cards[index].querySelector('.gesture-card__glyph'), source, letter, { delay });
+        } else {
+            const card = addGesture(letter, { row: 1, column: index, settle: true, source, delay });
+            // Tail signs enter at their own slots; never paint an unprepared
+            // source pose, including when optional cache warming has failed.
+            card.style.opacity = '0';
+            reveals.push(new Promise(resolve => {
+                const revealWhenReady = () => {
+                    if (card.querySelector('.glyph-slot.is-loading')) return;
+                    observer.disconnect();
+                    const animation = card.animate([{ opacity: 0 }, { opacity: 1 }], {
+                        duration: 200,
+                        delay,
+                        easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
+                        fill: 'both',
+                    });
+                    card.style.removeProperty('opacity');
+                    // Keep fades independent of resize FLIPs, which can cancel
+                    // layout effects while this reveal is still in progress.
+                    animation.finished.then(() => {
+                        animation.cancel();
+                        resolve();
+                    }, () => resolve());
+                };
+                const observer = new MutationObserver(revealWhenReady);
+                observer.observe(card, { attributes: true, subtree: true, attributeFilter: ['class'] });
+                revealWhenReady();
+            }));
+        }
+    });
+    await Promise.all(reveals);
+    if (completionStage !== 'brand') return;
+    waitForGestureAnimations(() => {
+        window.setTimeout(morphRowsIntoWordCards, WORD_CARD_START_DELAY_MS);
+    });
 }
 
 function setWordCardLayout(card) {
-    window.FinglyphGlyphMorph?.sizeWordCard(card, el.page.clientWidth - 72);
+    window.FinglyphGlyphMorph?.sizeWordCard(card, el.page.clientWidth - mainLayoutMetrics().gutter * 2);
 }
 
 function collectWordRow(word, row) {
@@ -218,8 +343,9 @@ function collectWordRow(word, row) {
 
 function updateHeaderShift() {
     const brand = el.greeting.querySelector('.tutorial-greeting__brand');
-    brand.style.setProperty('--header-shift-x', `${36 - brand.offsetLeft}px`);
-    brand.style.setProperty('--header-shift-y', `${24 - brand.offsetTop}px`);
+    const { gutter, headerTop } = mainLayoutMetrics();
+    brand.style.setProperty('--header-shift-x', `${gutter - brand.offsetLeft}px`);
+    brand.style.setProperty('--header-shift-y', `${headerTop - brand.offsetTop}px`);
 }
 
 function revealFinaleCopy() {
@@ -237,9 +363,9 @@ function showFinale() {
 
 function startMainPreview() {
     if (el.page.classList.contains('is-main-preview')) return;
+    el.page.classList.add('is-main-preview');
     updateHeaderShift();
     window.FinglyphResizeInputToContent?.(el.inputPreview);
-    el.page.classList.add('is-main-preview');
     el.footerPreview.removeAttribute('aria-hidden');
     window.setTimeout(showFinale, MAIN_PREVIEW_TRANSITION_MS + MAIN_PREVIEW_HOLD_MS);
 }
@@ -276,6 +402,7 @@ function morphRowsIntoWordCards() {
     const rows = [collectWordRow(TARGETS.join(''), 0), collectWordRow(FINAL_WORD, 1)];
     if (rows.some(row => !row)) return;
 
+    completionStage = 'cards';
     el.found.classList.add('is-word-output');
     let completedCards = 0;
 
@@ -329,31 +456,32 @@ function finalLayout() {
     const wordCards = [...el.found.querySelectorAll('.tutorial-word-card')];
     if (!cards.length && !wordCards.length) return;
 
+    // Capture the rendered state while any interrupted FLIP is still applied.
+    const fromPositions = cards.map(card => card.getBoundingClientRect());
     layoutAnimations.forEach(animation => animation.cancel());
     layoutAnimations = [];
     wordCards.forEach(setWordCardLayout);
     if (!cards.length) return;
 
-    const duration = FINAL_LAYOUT_MS;
-
     cards.forEach(card => {
         const row = Number(card.dataset.layoutRow) || 0;
         const column = Number(card.dataset.layoutColumn) || 0;
         const position = finalCardPosition(row, column);
-        const from = { left: card.offsetLeft, top: card.offsetTop };
-        const to = { left: position.left, top: position.top };
         card.style.setProperty('--gesture-size', `${position.cardSize}px`);
         card.style.setProperty('--settled-size', `${position.cardSize}px`);
         card.classList.add('is-settling');
-        card.style.left = `${to.left}px`;
-        card.style.top = `${to.top}px`;
+        card.style.left = `${position.left}px`;
+        card.style.top = `${position.top}px`;
+    });
+    const toPositions = cards.map(card => card.getBoundingClientRect());
 
-        // Explicit pixel keyframes preserve the observed floating position as
-        // the start of the motion, including the final card created this turn.
+    cards.forEach((card, index) => {
+        const from = fromPositions[index];
+        const to = toPositions[index];
         const animation = card.animate([
-            { left: `${from.left}px`, top: `${from.top}px` },
-            { left: `${to.left}px`, top: `${to.top}px` },
-        ], { duration, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'both' });
+            { transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.width / to.width}, ${from.height / to.height})`, transformOrigin: 'top left' },
+            { transform: 'none', transformOrigin: 'top left' },
+        ], { duration: FINAL_LAYOUT_MS, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'both' });
         layoutAnimations.push(animation);
         animation.onfinish = () => {
             animation.cancel();
@@ -364,9 +492,10 @@ function finalLayout() {
 
 function repositionFloatingCards() {
     const size = finalCardPosition(0, 0).cardSize;
-    el.found.querySelectorAll('.gesture-card[data-layout-row="0"]').forEach(card => {
+    el.found.querySelectorAll('.gesture-card').forEach(card => {
         card.style.setProperty('--gesture-size', `${size}px`);
-        positionCard(card, floatingPosition(Number(card.dataset.layoutColumn), TARGETS.length, card));
+        const index = Number(card.dataset.layoutRow) * TARGETS.length + Number(card.dataset.layoutColumn);
+        positionCard(card, floatingPosition(index, card));
     });
 }
 
@@ -403,10 +532,11 @@ function completePractice() {
     if (completed) return;
     completed = true;
     beginCompletion();
-    hideCameraForCompletion();
-    [...el.found.querySelectorAll('.gesture-card')].forEach(stopFloating);
-    requestAnimationFrame(finalLayout);
-    window.setTimeout(revealFinalWord, FINAL_WORD_START_DELAY_MS);
+    completionStage = 'scattering';
+    el.guide.style.visibility = 'hidden';
+    el.guide.setAttribute('aria-hidden', 'true');
+    el.retry.hidden = true;
+    revealScatteredWord();
 }
 
 function skipRecognition() {
@@ -429,8 +559,7 @@ function accept() {
     else {
         status('Nice work.');
         beginCompletion();
-        // Keep the camera visible while the final card enters and floats for
-        // one full second, then hide it as the cards move into their final layout.
+        // Keep the camera centered while WORLD joins the five recognized signs.
         window.setTimeout(completePractice, FINAL_CARD_SETTLE_DELAY_MS);
     }
 }
@@ -534,6 +663,7 @@ async function startCamera() {
     if (starting || running || completed || completionPending) return;
     starting = true;
     el.retry.hidden = true;
+    fitPracticeCamera();
     let phase = 'camera';
     try {
         if (!navigator.mediaDevices?.getUserMedia) throw new Error('getUserMedia is unavailable');
@@ -562,13 +692,15 @@ async function startCamera() {
         el.retry.hidden = false;
     } finally {
         starting = false;
+        fitPracticeCamera();
     }
 }
 
 el.retry.addEventListener('click', startCamera);
 el.skip.addEventListener('click', skipRecognition);
 el.start.addEventListener('click', () => { if (el.page.classList.contains('is-finale-copy-visible')) window.location.assign('main_page.html'); });
-window.addEventListener('resize', () => { if (completed) finalLayout(); else repositionFloatingCards(); if (el.page.classList.contains('is-main-preview')) updateHeaderShift(); });
+window.addEventListener('resize', () => { fitPracticeCamera(); if (completed && completionStage !== 'scattering') finalLayout(); else repositionFloatingCards(); if (el.page.classList.contains('is-main-preview')) updateHeaderShift(); });
 window.addEventListener('beforeunload', () => { running = false; cancelAnimationFrame(animationId); stream?.getTracks().forEach(track => track.stop()); });
 updateGuide();
+fitPracticeCamera();
 if (TARGETS.length) startCamera(); else completePractice();

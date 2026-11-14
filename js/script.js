@@ -704,6 +704,11 @@ async function hydrateGlyph(
 
 // Kept public so non-editor screens can show the exact same sign-card preview.
 window.FinglyphGlyphMorph = {
+    prepareTransitions(transitions) {
+        return Promise.allSettled(transitions.map(([source, target]) =>
+            prepareMorphGeometry(source, target)));
+    },
+
     getWordCardMetrics(availableWidth) {
         return calculateWordCardMetrics(availableWidth);
     },
@@ -967,12 +972,27 @@ window.addEventListener('DOMContentLoaded', () => {
 const textInput = document.getElementById('textInput');
 
 function resizeInputToContent(input) {
-    const minimumText = 'mmmmmmmmmmmm';
-    const maxWidth = 500;
-    const padding = 32; 
-    
-    const temp = document.createElement('span');
     const style = getComputedStyle(input);
+    const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    const container = input.closest('.bottom-fixed, .tutorial-footer-preview, .how-to-use-slide') || input.parentElement;
+    const containerStyle = getComputedStyle(container);
+    const availableWidth = container.clientWidth
+        - parseFloat(containerStyle.paddingLeft)
+        - parseFloat(containerStyle.paddingRight);
+    let maxWidth = Math.min(500, availableWidth);
+
+    // Keep the editor input clear of the camera when both share the bottom edge.
+    const camera = input.id === 'textInput' ? document.getElementById('camera-panel') : null;
+    if (camera) {
+        const cameraBounds = camera.getBoundingClientRect();
+        const inputBounds = input.getBoundingClientRect();
+        if (cameraBounds.width > 0 && cameraBounds.top < inputBounds.bottom && cameraBounds.bottom > inputBounds.top) {
+            maxWidth = Math.min(maxWidth, Math.max(0, cameraBounds.left - inputBounds.left - 24));
+        }
+    }
+
+    const minWidth = Math.min(maxWidth, Math.max(200, Math.min(420, window.innerWidth * 0.16)));
+    const temp = document.createElement('span');
     
     temp.style.cssText = `
         font-size: ${style.fontSize};
@@ -987,8 +1007,6 @@ function resizeInputToContent(input) {
     
     document.body.appendChild(temp);
 
-    temp.textContent = minimumText;
-    const minWidth = temp.offsetWidth + padding;
     // Measure the placeholder when the input is empty.
     temp.textContent = input.value || input.placeholder;
     
@@ -1014,6 +1032,11 @@ if (textInput) {
     window.addEventListener('DOMContentLoaded', resizeInput);
     document.fonts?.ready.then(resizeInput);
 }
+
+window.addEventListener('resize', () => {
+    document.querySelectorAll('#textInput, .tutorial-input-preview, .how-to-use-demo-input')
+        .forEach(resizeInputToContent);
+});
 
 
 

@@ -37,7 +37,7 @@ function status(message) {
 }
 
 function progress(value) {
-    document.getElementById('hold-progress').style.width = `${Math.max(0, Math.min(1, value)) * 100}%`;
+    document.getElementById('hold-progress').style.transform = `scaleX(${Math.max(0, Math.min(1, value))})`;
 }
 
 function showLetter(letter) {
